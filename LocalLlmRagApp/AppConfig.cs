@@ -14,17 +14,27 @@ public class AppConfig
     public string Secret1 { get; set; }
 
     /// <summary>
-    /// appsettings.jsonから読み込む
-    /// </summary>
-    public string Other1 { get; set; }
-
-    /// <summary>
-    /// ONNXモデルファイルのパス
+    /// 埋め込みモデル(ONNX)のパス（必須）
     /// </summary>
     public string EmbeddingOnnxModelPath { get; set; }
 
     /// <summary>
-    /// LLM用ONNXモデルファイルのパス
+    /// LLM用ONNXモデルファイルのパス（必須）
     /// </summary>
     public string LlmOnnxModelPath { get; set; }
+
+    /// <summary>
+    /// トークナイザーモデルファイルのパス（必須）
+    /// </summary>
+    public string TokenizerModelPath { get; set; }
+
+    public void Validate()
+    {
+        if (string.IsNullOrWhiteSpace(EmbeddingOnnxModelPath))
+            throw new InvalidOperationException("AppConfig.EmbeddingOnnxModelPath is required.");
+        if (string.IsNullOrWhiteSpace(LlmOnnxModelPath))
+            throw new InvalidOperationException("AppConfig.LlmOnnxModelPath is required.");
+        if (string.IsNullOrWhiteSpace(TokenizerModelPath))
+            throw new InvalidOperationException("AppConfig.TokenizerModelPath is required.");
+    }
 }
