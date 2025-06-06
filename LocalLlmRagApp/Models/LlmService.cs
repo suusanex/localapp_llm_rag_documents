@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using System.Text;
 using System.Text.Json;
 using LocalLlmRagApp.Data;
+using Tokenizer = Microsoft.ML.OnnxRuntimeGenAI.Tokenizer;
 
 namespace LocalLlmRagApp.Llm;
 
@@ -53,7 +54,7 @@ public class Phi3MiniOnnxLlmService : ILlmService
         // Phi-3-mini-4k-instructのONNXモデルパスをAppConfigから取得
         var modelPath = config.Value.LlmOnnxModelPath ?? "./models/phi-3-mini-4k-instruct.onnx";
         _model = new Model(modelPath);
-        _tokenizer = _model.CreateTokenizer();
+        _tokenizer = new Tokenizer(_model);
         _embedder = embedder;
         _vectorDb = vectorDb;
     }
@@ -69,15 +70,24 @@ public class Phi3MiniOnnxLlmService : ILlmService
         // 4. トークナイズ
         var inputTokens = _tokenizer.Encode(ragPrompt);
         // 5. Generator生成
-        using var generator = new Generator(_model, inputTokens);
+        var generatorParams = new GeneratorParams(_model);
+        generatorParams.SetSearchOption("max_length", 2048);
+        generatorParams.TryGraphCaptureWithMaxBatchSize(1);
+        using var generator = new Generator(_model, generatorParams);
+        generator.AppendTokenSequences(inputTokens);
         var sb = new StringBuilder();
-        while (!generator.IsDone)
+        while (!generator.IsDone())
         {
-            var token = generator.GenerateNextToken();
-            if (token == null) break;
-            var text = _tokenizer.Decode(new int[] { token.Value });
-            sb.Append(text);
-            // 省略: 必要なら逐次出力やキャンセル対応
+            await Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken).ConfigureAwait(false);
+            generator.GenerateNextToken();
+            var part = _tokenizer.Decode(generator.GetSequence(0).ToArray());
+            sb.Append(part);
+            if (sb.ToString().Contains("<|end|>")
+                || sb.ToString().Contains("<|user|>")
+                || sb.ToString().Contains("<|system|>"))
+            {
+                break;
+            }
         }
         return sb.ToString();
     }
