@@ -1,8 +1,10 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
+using Microsoft.ML.OnnxRuntimeGenAI;
 using Microsoft.Extensions.Options;
 using System.Text;
 using System.Text.Json;
+using LocalLlmRagApp.Data;
 
 namespace LocalLlmRagApp.Llm;
 
@@ -36,6 +38,48 @@ public class OnnxLlmService : ILlmService
         var outputTensor = results.First().AsEnumerable<long>().ToArray();
         var response = Encoding.UTF8.GetString(outputTensor.Select(x => (byte)x).ToArray());
         return Task.FromResult(response);
+    }
+}
+
+public class Phi3MiniOnnxLlmService : ILlmService
+{
+    private readonly Model _model;
+    private readonly Microsoft.ML.OnnxRuntimeGenAI.Tokenizer _tokenizer;
+    private readonly Embedder _embedder;
+    private readonly IVectorDb _vectorDb;
+
+    public Phi3MiniOnnxLlmService(IOptions<AppConfig> config, Embedder embedder, IVectorDb vectorDb)
+    {
+        // Phi-3-mini-4k-instructのONNXモデルパスをAppConfigから取得
+        var modelPath = config.Value.LlmOnnxModelPath ?? "./models/phi-3-mini-4k-instruct.onnx";
+        _model = new Model(modelPath);
+        _tokenizer = _model.CreateTokenizer();
+        _embedder = embedder;
+        _vectorDb = vectorDb;
+    }
+
+    public async Task<string> ChatAsync(string prompt, CancellationToken cancellationToken = default)
+    {
+        // 1. 入力文をベクトル化
+        var queryVec = _embedder.Embed(prompt);
+        // 2. ベクトルDBから類似チャンク検索
+        var similarChunks = _vectorDb.Search(queryVec, topK: 3).Select(x => x.text).ToArray();
+        // 3. RAGプロンプト生成（Phi-3のプロンプト形式に合わせる）
+        var ragPrompt = $"<|system|>You are a helpful assistant. Use the following context to answer the user's question.<|end|>\n<|context|>\n{string.Join("\n---\n", similarChunks)}\n<|end|>\n<|user|>{prompt}<|end|>\n<|assistant|>";
+        // 4. トークナイズ
+        var inputTokens = _tokenizer.Encode(ragPrompt);
+        // 5. Generator生成
+        using var generator = new Generator(_model, inputTokens);
+        var sb = new StringBuilder();
+        while (!generator.IsDone)
+        {
+            var token = generator.GenerateNextToken();
+            if (token == null) break;
+            var text = _tokenizer.Decode(new int[] { token.Value });
+            sb.Append(text);
+            // 省略: 必要なら逐次出力やキャンセル対応
+        }
+        return sb.ToString();
     }
 }
 
