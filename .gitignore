@@ -408,3 +408,8 @@ FodyWeavers.xsd
 # デバッグ設定が含まれるファイルの除外
 # 仕様上、コマンドライン引数にローカルのフルパスを含める場合があるため、このプロジェクトでは除外する
 **/Properties/launchSettings.json
+
+# プロジェクトのフォルダ構成固有の設定
+ModelBinaries/
+
+
