@@ -44,7 +44,7 @@ public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostAp
             // RAGデータソース構築例
             var markdown = new MarkdownFiles();
             var chunker = new Chunker();
-            var embedder = new Embedder();
+            var embedder = new Embedder(_Options);
             var vectorDb = new InMemoryVectorDb();
             foreach (var file in markdown.GetMarkdownFilePaths("./Data"))
             {
