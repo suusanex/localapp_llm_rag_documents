@@ -38,5 +38,5 @@ void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     services.AddSingleton<Chunker>();
     services.AddSingleton<Embedder>();
     services.AddSingleton<IVectorDb, InMemoryVectorDb>();
-    services.AddSingleton<ILlmService, DummyLlmService>();
+    services.AddSingleton<ILlmService, OnnxLlmService>();
 }

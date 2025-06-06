@@ -18,4 +18,13 @@ public class AppConfig
     /// </summary>
     public string Other1 { get; set; }
 
+    /// <summary>
+    /// ONNXモデルファイルのパス
+    /// </summary>
+    public string EmbeddingOnnxModelPath { get; set; }
+
+    /// <summary>
+    /// LLM用ONNXモデルファイルのパス
+    /// </summary>
+    public string LlmOnnxModelPath { get; set; }
 }
