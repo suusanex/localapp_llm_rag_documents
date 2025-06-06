@@ -10,6 +10,8 @@ global using System.Text;
 global using System.Threading.Tasks;
 global using System.Diagnostics;
 using LocalLlmRagApp;
+using LocalLlmRagApp.Data;
+using LocalLlmRagApp.Llm;
 
 _ = Host.CreateDefaultBuilder(args)
     .ConfigureLogging((context, logging) =>
@@ -31,5 +33,10 @@ void ConfigureServices(HostBuilderContext context, IServiceCollection services)
 {
     services.AddHostedService<ConsoleHostedService>();
     services.Configure<AppConfig>(context.Configuration.GetSection(nameof(AppConfig)));
-
+    // RAG・LLM関連サービスのDI登録
+    services.AddSingleton<MarkdownFiles>();
+    services.AddSingleton<Chunker>();
+    services.AddSingleton<Embedder>();
+    services.AddSingleton<IVectorDb, InMemoryVectorDb>();
+    services.AddSingleton<ILlmService, DummyLlmService>();
 }
