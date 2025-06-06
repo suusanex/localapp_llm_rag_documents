@@ -37,12 +37,38 @@
 
 ---
 
-## システム構成図
+## 主な処理シーケンス
 
-@startuml actor User User -> ConsoleApp : チャット入力 ConsoleApp -> VectorDB : 類似チャンク検索 ConsoleApp -> LLM : プロンプト＋検索結果で推論 LLM -> ConsoleApp : 応答 ConsoleApp -> User : 応答表示
-ConsoleApp -> DataSourceBuilder : データソース生成コマンド DataSourceBuilder -> MarkdownFiles : Markdown読込 DataSourceBuilder -> Chunker : チャンク分割 Chunker -> Embedder : ベクトル化 Embedder -> VectorDB : ベクトル保存 @enduml
+### 1. RAGデータソース生成
 
----
+```plantuml
+@startuml
+
+actor User 
+User -> ConsoleApp : データソース生成コマンド(Sphinxプロジェクトのフォルダパス)
+ConsoleApp -> DataSourceBuilder : データソース生成コマンド 
+DataSourceBuilder -> MarkdownFiles : Markdown読込 
+DataSourceBuilder -> Chunker : チャンク分割 
+Chunker -> Embedder : ベクトル化 
+Embedder -> VectorDB : ベクトル保存 
+@enduml
+```
+
+### 2. LLMチャットCUI
+
+```plantuml
+@startuml
+
+actor User 
+User -> ConsoleApp : チャット入力 
+ConsoleApp -> VectorDB : 類似チャンク検索 
+ConsoleApp -> LLM : プロンプト＋検索結果で推論 
+LLM -> ConsoleApp : 応答 
+ConsoleApp -> User : 応答表示
+@enduml
+```
+
+
 
 ## 主な技術スタック
 
@@ -55,9 +81,17 @@ ConsoleApp -> DataSourceBuilder : データソース生成コマンド DataSourceBuilder -> 
 
 ---
 
-## ディレクトリ構成（例）
+## ソースコードディレクトリ構成
 
-/LocalLlmRagApp |-- Program.cs |-- ConsoleHostedService.cs |-- AppConfig.cs |-- appsettings.json |-- /Data |-- /Models |-- /VectorDb |-- /Docs (SphinxプロジェクトのMarkdown) |-- README.md
+/LocalLlmRagApp
+ |-- Program.cs
+ |-- ConsoleHostedService.cs
+ |-- AppConfig.cs
+ |-- appsettings.json
+ |-- /Data
+ |-- /Models
+ |-- /VectorDb
+ |-- README.md
 
 ---
 
@@ -69,4 +103,3 @@ ConsoleApp -> DataSourceBuilder : データソース生成コマンド DataSourceBuilder -> 
 - チャンク分割・ベクトル化パラメータのカスタマイズ
 
 ---
-
