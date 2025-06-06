@@ -19,6 +19,7 @@ _ = Host.CreateDefaultBuilder(args)
         logging.ClearProviders();
         logging.AddConfiguration(context.Configuration.GetSection("Logging"));
         logging.AddConsole();
+        DebugLoggerAdd(logging);
     })
     .ConfigureAppConfiguration((context, config) =>
     {
@@ -39,4 +40,10 @@ void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     services.AddSingleton<Embedder>();
     services.AddSingleton<IVectorDb, InMemoryVectorDb>();
     services.AddSingleton<ILlmService, OnnxLlmService>();
+}
+
+[Conditional("DEBUG")]
+static void DebugLoggerAdd(ILoggingBuilder loggingBuilder)
+{
+    loggingBuilder.AddDebug();
 }

@@ -404,3 +404,7 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# デバッグ設定が含まれるファイルの除外
+# 仕様上、コマンドライン引数にローカルのフルパスを含める場合があるため、このプロジェクトでは除外する
+**/Properties/launchSettings.json
