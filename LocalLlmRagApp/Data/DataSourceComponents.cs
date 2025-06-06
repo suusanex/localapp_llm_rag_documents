@@ -1,4 +1,4 @@
-using Microsoft.SemanticKernel;
+ï»¿using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.HuggingFace;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
@@ -13,7 +13,7 @@ public class MarkdownFiles
 {
     public IEnumerable<string> GetMarkdownFilePaths(string directory)
     {
-        // w’èƒfƒBƒŒƒNƒgƒŠ”z‰º‚ÌMarkdownƒtƒ@ƒCƒ‹ƒpƒX‚ğ—ñ‹“
+        // æŒ‡å®šãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªé…ä¸‹ã®Markdownãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹ã‚’åˆ—æŒ™
         return Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories);
     }
 
@@ -27,7 +27,7 @@ public class Chunker
 {
     public IEnumerable<string> Chunk(string text, int maxLength = 512)
     {
-        // ƒVƒ“ƒvƒ‹‚Èƒ`ƒƒƒ“ƒN•ªŠ„imaxLength‚²‚Æ‚É•ªŠ„j
+        // ã‚·ãƒ³ãƒ—ãƒ«ãªãƒãƒ£ãƒ³ã‚¯åˆ†å‰²ï¼ˆmaxLengthã”ã¨ã«åˆ†å‰²ï¼‰
         for (int i = 0; i < text.Length; i += maxLength)
         {
             yield return text.Substring(i, Math.Min(maxLength, text.Length - i));
@@ -42,10 +42,10 @@ public class Embedder
 
     public Embedder(IOptions<AppConfig> config)
     {
-        // ONNXƒ‚ƒfƒ‹ƒtƒ@ƒCƒ‹ƒpƒX‚ğİ’èƒtƒ@ƒCƒ‹‚©‚çæ“¾
+        // ONNXãƒ¢ãƒ‡ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹ã‚’è¨­å®šãƒ•ã‚¡ã‚¤ãƒ«ã‹ã‚‰å–å¾—
         var modelPath = config.Value.EmbeddingOnnxModelPath;
         _session = new InferenceSession(modelPath);
-        _tokenizer = new Tokenizer(); // Tokenizer‚ÍŒãq‚ÌŠÈˆÕÀ‘•‚Ü‚½‚ÍŠO•”ƒ‰ƒCƒuƒ‰ƒŠ—˜—p
+        _tokenizer = new Tokenizer(); // Tokenizerã¯å¾Œè¿°ã®ç°¡æ˜“å®Ÿè£…ã¾ãŸã¯å¤–éƒ¨ãƒ©ã‚¤ãƒ–ãƒ©ãƒªåˆ©ç”¨
     }
 
     public float[] Embed(string text)
@@ -55,21 +55,21 @@ public class Embedder
         var inputTensor = new DenseTensor<long>(new[] { 1, inputIds.Length });
         for (int i = 0; i < inputIds.Length; i++) inputTensor[0, i] = inputIds[i];
         var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input_ids", inputTensor) };
-        // „˜_
+        // æ¨è«–
         using var results = _session.Run(inputs);
         var embedding = results.First().AsEnumerable<float>().ToArray();
         return embedding;
     }
 }
 
-// --- Tokenizer‚ÌE5—pÀ‘•iMicrosoft.ML.Tokenizers—˜—pj ---
+// --- Tokenizerã®E5ç”¨å®Ÿè£…ï¼ˆMicrosoft.ML.Tokenizersåˆ©ç”¨ï¼‰ ---
 public class Tokenizer
 {
     private readonly SentencePieceTokenizer _tokenizer;
 
     public Tokenizer(string modelPath = "./models/sentencepiece.model")
     {
-        // E5—ptokenizer.json‚ğƒ[ƒJƒ‹‚©‚çƒ[ƒh
+        // E5ç”¨tokenizer.jsonã‚’ãƒ­ãƒ¼ã‚«ãƒ«ã‹ã‚‰ãƒ­ãƒ¼ãƒ‰
         using var stream = File.OpenRead(modelPath);
         _tokenizer = SentencePieceTokenizer.Create(stream);
     }
@@ -98,7 +98,7 @@ public class InMemoryVectorDb : IVectorDb
 
     public (string text, float score)[] Search(float[] queryVector, int topK = 5)
     {
-        // ƒRƒTƒCƒ“—Ş—“x‚ÅŒŸõiƒ_ƒ~[À‘•j
+        // ã‚³ã‚µã‚¤ãƒ³é¡ä¼¼åº¦ã§æ¤œç´¢ï¼ˆãƒ€ãƒŸãƒ¼å®Ÿè£…ï¼‰
         return _data.Select(d => (d.text, score: 1.0f)).Take(topK).ToArray();
     }
 }

@@ -1,4 +1,4 @@
-using Microsoft.ML.OnnxRuntime;
+ï»¿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.Extensions.Options;
 using System.Text;
@@ -18,21 +18,21 @@ public class OnnxLlmService : ILlmService
 
     public OnnxLlmService(IOptions<AppConfig> config)
     {
-        // appsettings.json“™‚ÅONNXƒ‚ƒfƒ‹ƒpƒX‚ğw’èi—á: "./models/llm-chat-model.onnx"j
+        // appsettings.jsonç­‰ã§ONNXãƒ¢ãƒ‡ãƒ«ãƒ‘ã‚¹ã‚’æŒ‡å®šï¼ˆä¾‹: "./models/llm-chat-model.onnx"ï¼‰
         _modelPath = config.Value.LlmOnnxModelPath ?? "./models/llm-chat-model.onnx";
         _session = new InferenceSession(_modelPath);
     }
 
     public Task<string> ChatAsync(string prompt, CancellationToken cancellationToken = default)
     {
-        // “ü—Í‚ğƒg[ƒNƒiƒCƒYi‚±‚±‚Å‚ÍUTF-8ƒoƒCƒg—ñ‚ğint‰»‚·‚éŠÈˆÕ—áBÀÛ‚Íƒ‚ƒfƒ‹‚É‡‚í‚¹‚Ä—vC³j
+        // å…¥åŠ›ã‚’ãƒˆãƒ¼ã‚¯ãƒŠã‚¤ã‚ºï¼ˆã“ã“ã§ã¯UTF-8ãƒã‚¤ãƒˆåˆ—ã‚’intåŒ–ã™ã‚‹ç°¡æ˜“ä¾‹ã€‚å®Ÿéš›ã¯ãƒ¢ãƒ‡ãƒ«ã«åˆã‚ã›ã¦è¦ä¿®æ­£ï¼‰
         var inputIds = Encoding.UTF8.GetBytes(prompt).Select(b => (long)b).ToArray();
         var inputTensor = new DenseTensor<long>(new[] { 1, inputIds.Length });
         for (int i = 0; i < inputIds.Length; i++) inputTensor[0, i] = inputIds[i];
         var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input_ids", inputTensor) };
-        // „˜_
+        // æ¨è«–
         using var results = _session.Run(inputs);
-        // o—Íi‚±‚±‚Å‚ÍÅ‰‚Ìo—Íƒeƒ“ƒ\ƒ‹‚ğUTF-8•¶š—ñ‚É•ÏŠ·‚·‚éŠÈˆÕ—áBƒ‚ƒfƒ‹d—l‚É‡‚í‚¹‚Ä—vC³j
+        // å‡ºåŠ›ï¼ˆã“ã“ã§ã¯æœ€åˆã®å‡ºåŠ›ãƒ†ãƒ³ã‚½ãƒ«ã‚’UTF-8æ–‡å­—åˆ—ã«å¤‰æ›ã™ã‚‹ç°¡æ˜“ä¾‹ã€‚ãƒ¢ãƒ‡ãƒ«ä»•æ§˜ã«åˆã‚ã›ã¦è¦ä¿®æ­£ï¼‰
         var outputTensor = results.First().AsEnumerable<long>().ToArray();
         var response = Encoding.UTF8.GetString(outputTensor.Select(x => (byte)x).ToArray());
         return Task.FromResult(response);
@@ -43,7 +43,7 @@ public class DummyLlmService : ILlmService
 {
     public Task<string> ChatAsync(string prompt, CancellationToken cancellationToken = default)
     {
-        // ƒ_ƒ~[‰“š
+        // ãƒ€ãƒŸãƒ¼å¿œç­”
         return Task.FromResult($"Echo: {prompt}");
     }
 }
