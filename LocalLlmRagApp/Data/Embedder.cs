@@ -20,8 +20,10 @@ public class Embedder
     {
         if (_initialized) return;
         var modelPath = _config.Value.EmbeddingOnnxModelPath;
+        if (string.IsNullOrWhiteSpace(modelPath))
+            throw new InvalidOperationException("AppConfig.EmbeddingOnnxModelPath is required.");
         _session = new InferenceSession(modelPath);
-        _tokenizer = new Tokenizer();
+        _tokenizer = new Tokenizer(_config);
         _initialized = true;
     }
 

@@ -1,6 +1,7 @@
 using Microsoft.ML.Tokenizers;
 using System.Linq;
 using System.IO;
+using Microsoft.Extensions.Options;
 
 namespace LocalLlmRagApp.Data;
 
@@ -9,9 +10,11 @@ public class Tokenizer
 {
     private readonly SentencePieceTokenizer _tokenizer;
 
-    public Tokenizer(string modelPath = "./models/sentencepiece.model")
+    public Tokenizer(IOptions<AppConfig> config)
     {
-        // E5用tokenizer.jsonをローカルからロード
+        var modelPath = config.Value.TokenizerModelPath;
+        if (string.IsNullOrWhiteSpace(modelPath))
+            throw new InvalidOperationException("TokenizerModelPath is required in AppConfig.");
         using var stream = File.OpenRead(modelPath);
         _tokenizer = SentencePieceTokenizer.Create(stream);
     }
