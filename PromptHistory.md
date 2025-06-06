@@ -36,4 +36,12 @@
     AppConfigクラスに定義されているプロパティは、appsettings.jsonにもサンプル値を書いてください。
     AppConfigでパスを指定するパラメータは必須とし、nullの場合は例外を投げるようにしてください。現状、全てのパラメータがパスを指定するものに該当します。
 1. appsettings.jsonが途中で切れていて、未完成のように見えます。完成させてください。
+1. Markdownをチャンク分割した後のEmbedder.Embed呼び出しで、下記の例外が出ます。渡しているデータの形式かパラメータが間違っているように見えますが、修正できますか？
+
+    Microsoft.ML.OnnxRuntime.OnnxRuntimeException
+    HResult=0x80131500
+    Message=[ErrorCode:InvalidArgument] Non-zero status code returned while running Expand node. Name:'/Expand' Status Message: invalid expand shape
+    Source=Microsoft.ML.OnnxRuntime
+    スタック トレース:
+    場所 Microsoft.ML.OnnxRuntime.NativeApiStatus.VerifySuccess(IntPtr nativeStatus)
 
