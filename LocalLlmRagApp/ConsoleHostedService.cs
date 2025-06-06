@@ -40,7 +40,7 @@ public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostAp
         async Task StartedAsync()
         {
             var args = Environment.GetCommandLineArgs();
-            _Logger.LogInformation($"Start, {string.Join(" ", args)}, {_Options.Value.Other1}");
+            _Logger.LogInformation($"Start, {string.Join(" ", args)}");
 
             if (args.Length >= 3 && string.Equals(args[1], "/CreateDataSource", StringComparison.OrdinalIgnoreCase))
             {
