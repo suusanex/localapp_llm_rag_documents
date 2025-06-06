@@ -16,26 +16,32 @@ public interface ILlmService
 
 public class OnnxLlmService : ILlmService
 {
-    private readonly InferenceSession _session;
-    private readonly string _modelPath;
+    private InferenceSession? _session;
+    private string? _modelPath;
+    private readonly IOptions<AppConfig> _config;
+    private bool _initialized = false;
 
     public OnnxLlmService(IOptions<AppConfig> config)
     {
-        // appsettings.json等でONNXモデルパスを指定（例: "./models/llm-chat-model.onnx"）
-        _modelPath = config.Value.LlmOnnxModelPath ?? "./models/llm-chat-model.onnx";
+        _config = config;
+    }
+
+    public void Initialize()
+    {
+        if (_initialized) return;
+        _modelPath = _config.Value.LlmOnnxModelPath ?? "./models/llm-chat-model.onnx";
         _session = new InferenceSession(_modelPath);
+        _initialized = true;
     }
 
     public Task<string> ChatAsync(string prompt, CancellationToken cancellationToken = default)
     {
-        // 入力をトークナイズ（ここではUTF-8バイト列をint化する簡易例。実際はモデルに合わせて要修正）
+        if (!_initialized) throw new InvalidOperationException("OnnxLlmService is not initialized. Call Initialize() first.");
         var inputIds = Encoding.UTF8.GetBytes(prompt).Select(b => (long)b).ToArray();
         var inputTensor = new DenseTensor<long>(new[] { 1, inputIds.Length });
         for (int i = 0; i < inputIds.Length; i++) inputTensor[0, i] = inputIds[i];
         var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input_ids", inputTensor) };
-        // 推論
-        using var results = _session.Run(inputs);
-        // 出力（ここでは最初の出力テンソルをUTF-8文字列に変換する簡易例。モデル仕様に合わせて要修正）
+        using var results = _session!.Run(inputs);
         var outputTensor = results.First().AsEnumerable<long>().ToArray();
         var response = Encoding.UTF8.GetString(outputTensor.Select(x => (byte)x).ToArray());
         return Task.FromResult(response);
@@ -44,36 +50,40 @@ public class OnnxLlmService : ILlmService
 
 public class Phi3MiniOnnxLlmService : ILlmService
 {
-    private readonly Model _model;
-    private readonly Microsoft.ML.OnnxRuntimeGenAI.Tokenizer _tokenizer;
+    private Model? _model;
+    private Microsoft.ML.OnnxRuntimeGenAI.Tokenizer? _tokenizer;
+    private readonly IOptions<AppConfig> _config;
     private readonly Embedder _embedder;
     private readonly IVectorDb _vectorDb;
+    private bool _initialized = false;
 
     public Phi3MiniOnnxLlmService(IOptions<AppConfig> config, Embedder embedder, IVectorDb vectorDb)
     {
-        // Phi-3-mini-4k-instructのONNXモデルパスをAppConfigから取得
-        var modelPath = config.Value.LlmOnnxModelPath ?? "./models/phi-3-mini-4k-instruct.onnx";
-        _model = new Model(modelPath);
-        _tokenizer = new Tokenizer(_model);
+        _config = config;
         _embedder = embedder;
         _vectorDb = vectorDb;
     }
 
+    public void Initialize()
+    {
+        if (_initialized) return;
+        var modelPath = _config.Value.LlmOnnxModelPath ?? "./models/phi-3-mini-4k-instruct.onnx";
+        _model = new Model(modelPath);
+        _tokenizer = new Microsoft.ML.OnnxRuntimeGenAI.Tokenizer(_model);
+        _initialized = true;
+    }
+
     public async Task<string> ChatAsync(string prompt, CancellationToken cancellationToken = default)
     {
-        // 1. 入力文をベクトル化
+        if (!_initialized) throw new InvalidOperationException("Phi3MiniOnnxLlmService is not initialized. Call Initialize() first.");
         var queryVec = _embedder.Embed(prompt);
-        // 2. ベクトルDBから類似チャンク検索
         var similarChunks = _vectorDb.Search(queryVec, topK: 3).Select(x => x.text).ToArray();
-        // 3. RAGプロンプト生成（Phi-3のプロンプト形式に合わせる）
         var ragPrompt = $"<|system|>You are a helpful assistant. Use the following context to answer the user's question.<|end|>\n<|context|>\n{string.Join("\n---\n", similarChunks)}\n<|end|>\n<|user|>{prompt}<|end|>\n<|assistant|>";
-        // 4. トークナイズ
-        var inputTokens = _tokenizer.Encode(ragPrompt);
-        // 5. Generator生成
-        var generatorParams = new GeneratorParams(_model);
+        var inputTokens = _tokenizer!.Encode(ragPrompt);
+        var generatorParams = new GeneratorParams(_model!);
         generatorParams.SetSearchOption("max_length", 2048);
         generatorParams.TryGraphCaptureWithMaxBatchSize(1);
-        using var generator = new Generator(_model, generatorParams);
+        using var generator = new Generator(_model!, generatorParams);
         generator.AppendTokenSequences(inputTokens);
         var sb = new StringBuilder();
         while (!generator.IsDone())

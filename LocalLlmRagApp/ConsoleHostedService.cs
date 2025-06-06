@@ -48,6 +48,7 @@ public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostAp
                 var markdown = new MarkdownFiles();
                 var chunker = new Chunker();
                 var embedder = new Embedder(_Options);
+                embedder.Initialize();
                 var vectorDb = new InMemoryVectorDb(); // 必要に応じてPgvectorDb等に差し替え
                 foreach (var file in markdown.GetMarkdownFilePaths(folder))
                 {
@@ -63,6 +64,18 @@ public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostAp
             else
             {
                 // チャットモード
+                if (_llmService is Phi3MiniOnnxLlmService phi3)
+                {
+                    phi3.Initialize();
+                }
+                else if (_llmService is OnnxLlmService onnx)
+                {
+                    onnx.Initialize();
+                }
+                else if (_llmService is Embedder embedder)
+                {
+                    embedder.Initialize();
+                }
                 Console.WriteLine("Input your prompt (or 'exit'):");
                 string? input;
                 while ((input = Console.ReadLine()) != "exit")
