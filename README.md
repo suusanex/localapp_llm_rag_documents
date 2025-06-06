@@ -1,5 +1,13 @@
 # localapp_llm_rag_documents 仕様書
 
+## 実行方法・モード切替
+
+- コマンドライン引数に「/CreateDataSource <フォルダパス>」を指定した場合、指定フォルダ配下のMarkdownファイルを用いてRAGデータソース構築のみを行います。
+    - 例: `dotnet run -- /CreateDataSource ./docs`
+- 引数が無い場合はチャットモードで起動し、LLMチャットCUIとして動作します。
+
+---
+
 ## 概要
 
 本ソフトウェアは、WindowsクライアントOS上で動作するローカル完結型のRAG（Retrieval-Augmented Generation）システムです。  
@@ -40,8 +48,6 @@
 ## 主な処理シーケンス
 
 ### 1. RAGデータソース生成
-
-```plantuml
 @startuml
 
 actor User 
@@ -52,11 +58,7 @@ DataSourceBuilder -> Chunker : チャンク分割
 Chunker -> Embedder : ベクトル化 
 Embedder -> VectorDB : ベクトル保存 
 @enduml
-```
-
 ### 2. LLMチャットCUI
-
-```plantuml
 @startuml
 
 actor User 
@@ -66,8 +68,6 @@ ConsoleApp -> LLM : プロンプト＋検索結果で推論
 LLM -> ConsoleApp : 応答 
 ConsoleApp -> User : 応答表示
 @enduml
-```
-
 
 
 ## 主な技術スタック

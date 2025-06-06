@@ -4,7 +4,7 @@ using LocalLlmRagApp.Llm;
 namespace LocalLlmRagApp;
 
 public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostApplicationLifetime _AppLifetime,
-    IOptions<AppConfig> _Options) : IHostedService
+    IOptions<AppConfig> _Options, ILlmService _llmService) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -41,28 +41,35 @@ public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostAp
         {
             var args = Environment.GetCommandLineArgs();
             _Logger.LogInformation($"Start, {string.Join(" ", args)}, {_Options.Value.Other1}");
-            // RAGデータソース構築例
-            var markdown = new MarkdownFiles();
-            var chunker = new Chunker();
-            var embedder = new Embedder(_Options);
-            var vectorDb = new InMemoryVectorDb();
-            foreach (var file in markdown.GetMarkdownFilePaths("./Data"))
+
+            if (args.Length >= 3 && string.Equals(args[1], "/CreateDataSource", StringComparison.OrdinalIgnoreCase))
             {
-                var text = markdown.ReadFile(file);
-                foreach (var chunk in chunker.Chunk(text))
+                var folder = args[2];
+                var markdown = new MarkdownFiles();
+                var chunker = new Chunker();
+                var embedder = new Embedder(_Options);
+                var vectorDb = new InMemoryVectorDb(); // 必要に応じてPgvectorDb等に差し替え
+                foreach (var file in markdown.GetMarkdownFilePaths(folder))
                 {
-                    var vec = embedder.Embed(chunk);
-                    vectorDb.Add(Guid.NewGuid().ToString(), vec, chunk);
+                    var text = markdown.ReadFile(file);
+                    foreach (var chunk in chunker.Chunk(text))
+                    {
+                        var vec = embedder.Embed(chunk);
+                        vectorDb.Add(Guid.NewGuid().ToString(), vec, chunk);
+                    }
                 }
+                Console.WriteLine($"RAGデータソース構築完了: {folder}");
             }
-            // LLMチャットCUI例
-            var llm = new DummyLlmService();
-            Console.WriteLine("Input your prompt (or 'exit'):");
-            string? input;
-            while ((input = Console.ReadLine()) != "exit")
+            else
             {
-                var response = await llm.ChatAsync(input ?? "");
-                Console.WriteLine($"LLM: {response}");
+                // チャットモード
+                Console.WriteLine("Input your prompt (or 'exit'):");
+                string? input;
+                while ((input = Console.ReadLine()) != "exit")
+                {
+                    var response = await _llmService.ChatAsync(input ?? "");
+                    Console.WriteLine($"LLM: {response}");
+                }
             }
             await Task.CompletedTask;
         }
