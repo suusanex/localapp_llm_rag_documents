@@ -1,87 +1,87 @@
-# localapp_llm_rag_documents Žd—l‘
+# localapp_llm_rag_documents ä»•æ§˜æ›¸
 
-## ŽÀs•û–@Eƒ‚[ƒhØ‘Ö
+## å®Ÿè¡Œæ–¹æ³•ãƒ»ãƒ¢ãƒ¼ãƒ‰åˆ‡æ›¿
 
-- ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”‚Éu/CreateDataSource <ƒtƒHƒ‹ƒ_ƒpƒX>v‚ðŽw’è‚µ‚½ê‡AŽw’èƒtƒHƒ‹ƒ_”z‰º‚ÌMarkdownƒtƒ@ƒCƒ‹‚ð—p‚¢‚ÄRAGƒf[ƒ^ƒ\[ƒX\’z‚Ì‚Ý‚ðs‚¢‚Ü‚·B
-    - —á: `dotnet run -- /CreateDataSource ./docs`
-- ˆø”‚ª–³‚¢ê‡‚Íƒ`ƒƒƒbƒgƒ‚[ƒh‚Å‹N“®‚µALLMƒ`ƒƒƒbƒgCUI‚Æ‚µ‚Ä“®ì‚µ‚Ü‚·B
-
----
-
-## ŠT—v
-
-–{ƒ\ƒtƒgƒEƒFƒA‚ÍAWindowsƒNƒ‰ƒCƒAƒ“ƒgOSã‚Å“®ì‚·‚éƒ[ƒJƒ‹Š®Œ‹Œ^‚ÌRAGiRetrieval-Augmented GenerationjƒVƒXƒeƒ€‚Å‚·B  
-Žå‚ÉC# (.NET 9) ‚ð—p‚¢‚ÄŠJ”­‚µASphinxƒvƒƒWƒFƒNƒg‚ÌMarkdownƒhƒLƒ…ƒƒ“ƒgŒQ‚ðRAG—pƒf[ƒ^ƒ\[ƒX‚Æ‚µ‚ÄƒxƒNƒgƒ‹DB‰»‚µA  
-ƒ[ƒJƒ‹LLM‚Æ˜AŒg‚µ‚½ƒ`ƒƒƒbƒgŒ^CUI‚ð’ñ‹Ÿ‚µ‚Ü‚·B
+- ã‚³ãƒžãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³å¼•æ•°ã«ã€Œ/CreateDataSource <ãƒ•ã‚©ãƒ«ãƒ€ãƒ‘ã‚¹>ã€ã‚’æŒ‡å®šã—ãŸå ´åˆã€æŒ‡å®šãƒ•ã‚©ãƒ«ãƒ€é…ä¸‹ã®Markdownãƒ•ã‚¡ã‚¤ãƒ«ã‚’ç”¨ã„ã¦RAGãƒ‡ãƒ¼ã‚¿ã‚½ãƒ¼ã‚¹æ§‹ç¯‰ã®ã¿ã‚’è¡Œã„ã¾ã™ã€‚
+    - ä¾‹: `dotnet run -- /CreateDataSource ./docs`
+- å¼•æ•°ãŒç„¡ã„å ´åˆã¯ãƒãƒ£ãƒƒãƒˆãƒ¢ãƒ¼ãƒ‰ã§èµ·å‹•ã—ã€LLMãƒãƒ£ãƒƒãƒˆCUIã¨ã—ã¦å‹•ä½œã—ã¾ã™ã€‚
 
 ---
 
-## ‹@”\—vŒ
+## æ¦‚è¦
 
-### 1. RAGƒf[ƒ^ƒ\[ƒX¶¬
-
-- SphinxƒvƒƒWƒFƒNƒg”z‰º‚Ì•¡”Markdownƒtƒ@ƒCƒ‹‚ð“ü—Í‚Æ‚µ‚ÄŽó‚¯•t‚¯‚é
-- Markdownƒtƒ@ƒCƒ‹‚ð“KØ‚Éƒ`ƒƒƒ“ƒN•ªŠ„iƒZƒNƒVƒ‡ƒ“E’i—ŽEƒg[ƒNƒ“”“™‚Å•ªŠ„j
-- Šeƒ`ƒƒƒ“ƒN‚ðƒ[ƒJƒ‹‚Å“®ì‰Â”\‚ÈŒy—Êƒ‚ƒfƒ‹i—á: MiniLM, BGE“™j{Sewmantic Kernel‚ÅƒxƒNƒgƒ‹‰»
-- ƒxƒNƒgƒ‹DBiƒ[ƒJƒ‹ƒtƒ@ƒCƒ‹DBA—á: SQLite, Faiss, Qdrant“™j‚Ö•Û‘¶
-- ƒxƒNƒgƒ‹DB‚ÍWindowsƒNƒ‰ƒCƒAƒ“ƒgOS‚Ìƒ[ƒJƒ‹ƒXƒgƒŒ[ƒWã‚É”z’u
-
-### 2. LLMƒ`ƒƒƒbƒgCUI
-
-- ƒRƒ“ƒ\[ƒ‹ƒAƒvƒŠiCUIj‚Æ‚µ‚Ä“®ì
-- ƒ†[ƒU[‚©‚ç‚Ì“ü—Í‚ðŽó‚¯•t‚¯ALLM‚ÆƒeƒLƒXƒgƒ`ƒƒƒbƒg
-- “ü—Í•¶‚É‘Î‚µAƒxƒNƒgƒ‹DB‚©‚ç—ÞŽ—ƒ`ƒƒƒ“ƒN‚ðŒŸõ‚µALLM‚Ö‚Ìƒvƒƒ“ƒvƒg‚É•t‰ÁiRAG“®ìj
-- LLM‚Íƒ[ƒJƒ‹‚Å“®ì‰Â”\‚ÈŒy—Êƒ‚ƒfƒ‹‚ðŽg—pi—á: llama.cpp, GGML, ONNX Runtime“™j
-- .NET GenericHost‚É‚æ‚éƒAƒvƒŠƒP[ƒVƒ‡ƒ“ƒ‰ƒCƒtƒTƒCƒNƒ‹ŠÇ—
+æœ¬ã‚½ãƒ•ãƒˆã‚¦ã‚§ã‚¢ã¯ã€Windowsã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆOSä¸Šã§å‹•ä½œã™ã‚‹ãƒ­ãƒ¼ã‚«ãƒ«å®Œçµåž‹ã®RAGï¼ˆRetrieval-Augmented Generationï¼‰ã‚·ã‚¹ãƒ†ãƒ ã§ã™ã€‚  
+ä¸»ã«C# (.NET 9) ã‚’ç”¨ã„ã¦é–‹ç™ºã—ã€Sphinxãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆã®Markdownãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆç¾¤ã‚’RAGç”¨ãƒ‡ãƒ¼ã‚¿ã‚½ãƒ¼ã‚¹ã¨ã—ã¦ãƒ™ã‚¯ãƒˆãƒ«DBåŒ–ã—ã€  
+ãƒ­ãƒ¼ã‚«ãƒ«LLMã¨é€£æºã—ãŸãƒãƒ£ãƒƒãƒˆåž‹CUIã‚’æä¾›ã—ã¾ã™ã€‚
 
 ---
 
-## ”ñ‹@”\—vŒ
+## æ©Ÿèƒ½è¦ä»¶
 
-- ‚·‚×‚Ä‚Ìˆ—‚Íƒ[ƒJƒ‹PCã‚ÅŠ®Œ‹iŠO•”API‚âƒNƒ‰ƒEƒhƒT[ƒrƒX‚Í—˜—p‚µ‚È‚¢j
-- Žå‚ÉC#‚ÅŽÀ‘•B‘¼Œ¾Œê‚ðŽg‚¤ê‡‚ÍC++‚ð—Dæ
-- Windows 10/11 ƒNƒ‰ƒCƒAƒ“ƒgOS‚Å“®ì
-- ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”‚âÝ’èƒtƒ@ƒCƒ‹iappsettings.json, UserSecrets“™j‚É‚æ‚é_“î‚ÈÝ’è
+### 1. RAGãƒ‡ãƒ¼ã‚¿ã‚½ãƒ¼ã‚¹ç”Ÿæˆ
+
+- Sphinxãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆé…ä¸‹ã®è¤‡æ•°Markdownãƒ•ã‚¡ã‚¤ãƒ«ã‚’å…¥åŠ›ã¨ã—ã¦å—ã‘ä»˜ã‘ã‚‹
+- Markdownãƒ•ã‚¡ã‚¤ãƒ«ã‚’é©åˆ‡ã«ãƒãƒ£ãƒ³ã‚¯åˆ†å‰²ï¼ˆã‚»ã‚¯ã‚·ãƒ§ãƒ³ãƒ»æ®µè½ãƒ»ãƒˆãƒ¼ã‚¯ãƒ³æ•°ç­‰ã§åˆ†å‰²ï¼‰
+- å„ãƒãƒ£ãƒ³ã‚¯ã‚’ãƒ­ãƒ¼ã‚«ãƒ«ã§å‹•ä½œå¯èƒ½ãªè»½é‡ãƒ¢ãƒ‡ãƒ«ï¼ˆä¾‹: MiniLM, BGEç­‰ï¼‰ï¼‹Sewmantic Kernelã§ãƒ™ã‚¯ãƒˆãƒ«åŒ–
+- ãƒ™ã‚¯ãƒˆãƒ«DBï¼ˆãƒ­ãƒ¼ã‚«ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«DBã€ä¾‹: SQLite, Faiss, Qdrantç­‰ï¼‰ã¸ä¿å­˜
+- ãƒ™ã‚¯ãƒˆãƒ«DBã¯Windowsã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆOSã®ãƒ­ãƒ¼ã‚«ãƒ«ã‚¹ãƒˆãƒ¬ãƒ¼ã‚¸ä¸Šã«é…ç½®
+
+### 2. LLMãƒãƒ£ãƒƒãƒˆCUI
+
+- ã‚³ãƒ³ã‚½ãƒ¼ãƒ«ã‚¢ãƒ—ãƒªï¼ˆCUIï¼‰ã¨ã—ã¦å‹•ä½œ
+- ãƒ¦ãƒ¼ã‚¶ãƒ¼ã‹ã‚‰ã®å…¥åŠ›ã‚’å—ã‘ä»˜ã‘ã€LLMã¨ãƒ†ã‚­ã‚¹ãƒˆãƒãƒ£ãƒƒãƒˆ
+- å…¥åŠ›æ–‡ã«å¯¾ã—ã€ãƒ™ã‚¯ãƒˆãƒ«DBã‹ã‚‰é¡žä¼¼ãƒãƒ£ãƒ³ã‚¯ã‚’æ¤œç´¢ã—ã€LLMã¸ã®ãƒ—ãƒ­ãƒ³ãƒ—ãƒˆã«ä»˜åŠ ï¼ˆRAGå‹•ä½œï¼‰
+- LLMã¯ãƒ­ãƒ¼ã‚«ãƒ«ã§å‹•ä½œå¯èƒ½ãªè»½é‡ãƒ¢ãƒ‡ãƒ«ã‚’ä½¿ç”¨ï¼ˆä¾‹: llama.cpp, GGML, ONNX Runtimeç­‰ï¼‰
+- .NET GenericHostã«ã‚ˆã‚‹ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ãƒ©ã‚¤ãƒ•ã‚µã‚¤ã‚¯ãƒ«ç®¡ç†
 
 ---
 
-## Žå‚Èˆ—ƒV[ƒPƒ“ƒX
+## éžæ©Ÿèƒ½è¦ä»¶
 
-### 1. RAGƒf[ƒ^ƒ\[ƒX¶¬
+- ã™ã¹ã¦ã®å‡¦ç†ã¯ãƒ­ãƒ¼ã‚«ãƒ«PCä¸Šã§å®Œçµï¼ˆå¤–éƒ¨APIã‚„ã‚¯ãƒ©ã‚¦ãƒ‰ã‚µãƒ¼ãƒ“ã‚¹ã¯åˆ©ç”¨ã—ãªã„ï¼‰
+- ä¸»ã«C#ã§å®Ÿè£…ã€‚ä»–è¨€èªžã‚’ä½¿ã†å ´åˆã¯C++ã‚’å„ªå…ˆ
+- Windows 10/11 ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆOSã§å‹•ä½œ
+- ã‚³ãƒžãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³å¼•æ•°ã‚„è¨­å®šãƒ•ã‚¡ã‚¤ãƒ«ï¼ˆappsettings.json, UserSecretsç­‰ï¼‰ã«ã‚ˆã‚‹æŸ”è»Ÿãªè¨­å®š
+
+---
+
+## ä¸»ãªå‡¦ç†ã‚·ãƒ¼ã‚±ãƒ³ã‚¹
+
+### 1. RAGãƒ‡ãƒ¼ã‚¿ã‚½ãƒ¼ã‚¹ç”Ÿæˆ
 @startuml
 
 actor User 
-User -> ConsoleApp : ƒf[ƒ^ƒ\[ƒX¶¬ƒRƒ}ƒ“ƒh(SphinxƒvƒƒWƒFƒNƒg‚ÌƒtƒHƒ‹ƒ_ƒpƒX)
-ConsoleApp -> DataSourceBuilder : ƒf[ƒ^ƒ\[ƒX¶¬ƒRƒ}ƒ“ƒh 
-DataSourceBuilder -> MarkdownFiles : Markdown“Çž 
-DataSourceBuilder -> Chunker : ƒ`ƒƒƒ“ƒN•ªŠ„ 
-Chunker -> Embedder : ƒxƒNƒgƒ‹‰» 
-Embedder -> VectorDB : ƒxƒNƒgƒ‹•Û‘¶ 
+User -> ConsoleApp : ãƒ‡ãƒ¼ã‚¿ã‚½ãƒ¼ã‚¹ç”Ÿæˆã‚³ãƒžãƒ³ãƒ‰(Sphinxãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆã®ãƒ•ã‚©ãƒ«ãƒ€ãƒ‘ã‚¹)
+ConsoleApp -> DataSourceBuilder : ãƒ‡ãƒ¼ã‚¿ã‚½ãƒ¼ã‚¹ç”Ÿæˆã‚³ãƒžãƒ³ãƒ‰ 
+DataSourceBuilder -> MarkdownFiles : Markdownèª­è¾¼ 
+DataSourceBuilder -> Chunker : ãƒãƒ£ãƒ³ã‚¯åˆ†å‰² 
+Chunker -> Embedder : ãƒ™ã‚¯ãƒˆãƒ«åŒ– 
+Embedder -> VectorDB : ãƒ™ã‚¯ãƒˆãƒ«ä¿å­˜ 
 @enduml
-### 2. LLMƒ`ƒƒƒbƒgCUI
+### 2. LLMãƒãƒ£ãƒƒãƒˆCUI
 @startuml
 
 actor User 
-User -> ConsoleApp : ƒ`ƒƒƒbƒg“ü—Í 
-ConsoleApp -> VectorDB : —ÞŽ—ƒ`ƒƒƒ“ƒNŒŸõ 
-ConsoleApp -> LLM : ƒvƒƒ“ƒvƒg{ŒŸõŒ‹‰Ê‚Å„˜_ 
-LLM -> ConsoleApp : ‰ž“š 
-ConsoleApp -> User : ‰ž“š•\Ž¦
+User -> ConsoleApp : ãƒãƒ£ãƒƒãƒˆå…¥åŠ› 
+ConsoleApp -> VectorDB : é¡žä¼¼ãƒãƒ£ãƒ³ã‚¯æ¤œç´¢ 
+ConsoleApp -> LLM : ãƒ—ãƒ­ãƒ³ãƒ—ãƒˆï¼‹æ¤œç´¢çµæžœã§æŽ¨è«– 
+LLM -> ConsoleApp : å¿œç­” 
+ConsoleApp -> User : å¿œç­”è¡¨ç¤º
 @enduml
 
 
-## Žå‚È‹ZpƒXƒ^ƒbƒN
+## ä¸»ãªæŠ€è¡“ã‚¹ã‚¿ãƒƒã‚¯
 
 - .NET 9 / C#
 - Microsoft.Extensions.Hosting (GenericHost)
 - Sewmantic Kernel
-- ƒ[ƒJƒ‹LLMi—á: llama.cpp, GGML, ONNX Runtime“™j
-- ƒxƒNƒgƒ‹DBi—á: SQLite, Faiss, Qdrant“™j
-- PlantUMLiƒhƒLƒ…ƒƒ“ƒg—pj
+- ãƒ­ãƒ¼ã‚«ãƒ«LLMï¼ˆä¾‹: llama.cpp, GGML, ONNX Runtimeç­‰ï¼‰
+- ãƒ™ã‚¯ãƒˆãƒ«DBï¼ˆä¾‹: SQLite, Faiss, Qdrantç­‰ï¼‰
+- PlantUMLï¼ˆãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆç”¨ï¼‰
 
 ---
 
-## ƒ\[ƒXƒR[ƒhƒfƒBƒŒƒNƒgƒŠ\¬
+## ã‚½ãƒ¼ã‚¹ã‚³ãƒ¼ãƒ‰ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªæ§‹æˆ
 
 /LocalLlmRagApp
  |-- Program.cs
@@ -95,11 +95,11 @@ ConsoleApp -> User : ‰ž“š•\Ž¦
 
 ---
 
-## ¡Œã‚ÌŠg’£ˆÄ
+## ä»Šå¾Œã®æ‹¡å¼µæ¡ˆ
 
-- GUI‘Î‰ž
-- •¡”LLMƒ‚ƒfƒ‹Ø‘Ö
-- ƒxƒNƒgƒ‹DB‚ÌŽí—Þ’Ç‰Á
-- ƒ`ƒƒƒ“ƒN•ªŠ„EƒxƒNƒgƒ‹‰»ƒpƒ‰ƒ[ƒ^‚ÌƒJƒXƒ^ƒ}ƒCƒY
+- GUIå¯¾å¿œ
+- è¤‡æ•°LLMãƒ¢ãƒ‡ãƒ«åˆ‡æ›¿
+- ãƒ™ã‚¯ãƒˆãƒ«DBã®ç¨®é¡žè¿½åŠ 
+- ãƒãƒ£ãƒ³ã‚¯åˆ†å‰²ãƒ»ãƒ™ã‚¯ãƒˆãƒ«åŒ–ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã®ã‚«ã‚¹ã‚¿ãƒžã‚¤ã‚º
 
 ---
