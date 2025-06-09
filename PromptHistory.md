@@ -69,5 +69,13 @@
 1. LlmService.ChatAsyncメソッドで、次の例外が発生します。修正してください。 
     Microsoft.ML.OnnxRuntime.OnnxRuntimeException HResult=0x80131500 Message=[ErrorCode:RuntimeException] Non-zero status code returned while running Shape node. Name:'/model/attn_mask_reformat/attn_mask_subgraph/Shape' Status Message: D:\a_work\1\s\include\onnxruntime\core/framework/op_kernel_context.h:42 onnxruntimeOpKernelContextInput Missing Input: attention_mask
     Source=Microsoft.ML.OnnxRuntime スタック トレース: 場所 Microsoft.ML.OnnxRuntime.NativeApiStatus.VerifySuccess(IntPtr nativeStatus)
+1. 同じ場所で次の例外が発生します。修正してください。
+    Microsoft.ML.OnnxRuntime.OnnxRuntimeException
+    HResult=0x80131500
+    Message=[ErrorCode:RuntimeException] Non-zero status code returned while running GroupQueryAttention node. Name:'/model/layers.0/attn/GroupQueryAttention' Status Message: D:\a\_work\1\s\include\onnxruntime\core/framework/op_kernel_context.h:42 onnxruntime::OpKernelContext::Input Missing Input: past_key_values.0.key
+
+    Source=Microsoft.ML.OnnxRuntime
+    スタック トレース:
+    場所 Microsoft.ML.OnnxRuntime.NativeApiStatus.VerifySuccess(IntPtr nativeStatus)
 
 

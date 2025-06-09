@@ -40,7 +40,6 @@ public class OnnxLlmService : ILlmService
         var inputIds = Encoding.UTF8.GetBytes(prompt).Select(b => (long)b).ToArray();
         var inputTensor = new DenseTensor<long>(new[] { 1, inputIds.Length });
         for (int i = 0; i < inputIds.Length; i++) inputTensor[0, i] = inputIds[i];
-        // attention_maskを追加
         var attentionMask = new long[inputIds.Length];
         for (int i = 0; i < inputIds.Length; i++) attentionMask[i] = 1;
         var attentionMaskTensor = new DenseTensor<long>(attentionMask, new[] { 1, inputIds.Length });
@@ -48,7 +47,22 @@ public class OnnxLlmService : ILlmService
             NamedOnnxValue.CreateFromTensor("input_ids", inputTensor),
             NamedOnnxValue.CreateFromTensor("attention_mask", attentionMaskTensor)
         };
-        using var results = _session!.Run(inputs);
+        // past_key_values.* の入力があればゼロ埋めで渡す
+        foreach (var meta in _session!.InputMetadata)
+        {
+            var name = meta.Key;
+            if (name.StartsWith("past_key_values"))
+            {
+                var dims = meta.Value.Dimensions.ToArray();
+                // -1を1に置き換え（バッチ1、長さ1で初期化）
+                for (int i = 0; i < dims.Length; i++)
+                    if (dims[i] < 1) dims[i] = 1;
+                // float32でゼロ埋め
+                var zeroTensor = new DenseTensor<float>(dims);
+                inputs.Add(NamedOnnxValue.CreateFromTensor(name, zeroTensor));
+            }
+        }
+        using var results = _session.Run(inputs);
         var outputTensor = results.First().AsEnumerable<long>().ToArray();
         var response = Encoding.UTF8.GetString(outputTensor.Select(x => (byte)x).ToArray());
         return Task.FromResult(response);
