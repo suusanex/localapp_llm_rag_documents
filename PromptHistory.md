@@ -77,5 +77,6 @@
     Source=Microsoft.ML.OnnxRuntime
     スタック トレース:
     場所 Microsoft.ML.OnnxRuntime.NativeApiStatus.VerifySuccess(IntPtr nativeStatus)
+1. ChatAsyncメソッドの戻り値に、UTF-8では読み取れない下記のような文字列が返ってきます。おそらくレスポンスの解釈方法に誤りがあると思うのですが、考えられる修正を行ってください。（エラー文字列は省略）
 
 
