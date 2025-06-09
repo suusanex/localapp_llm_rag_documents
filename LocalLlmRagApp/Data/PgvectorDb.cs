@@ -11,7 +11,7 @@ public class PgvectorDb : IVectorDb
     private readonly string _tableName;
     private readonly int _vectorDimensions;
 
-    public PgvectorDb(string connectionString, string tableName = "embeddings", int vectorDimensions = 1024)
+    public PgvectorDb(string connectionString, int vectorDimensions, string tableName = "embeddings")
     {
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         dataSourceBuilder.UseVector();
