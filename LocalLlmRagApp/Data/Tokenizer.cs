@@ -27,8 +27,8 @@ public class Tokenizer
 
     public string Decode(long[] tokenIds)
     {
-        // SentencePieceTokenizer expects int[]
-        var ids = tokenIds.Select(x => (int)x).ToArray();
-        return _tokenizer.DecodeIds(ids);
+        // SentencePieceTokenizer expects IEnumerable<int>
+        var ids = tokenIds.Select(x => (int)x);
+        return _tokenizer.Decode(ids);
     }
 }
