@@ -15,6 +15,10 @@ public class PgvectorDb : IVectorDb
         _connectionString = connectionString;
         _tableName = tableName;
         _vectorDimensions = vectorDimensions;
+    }
+
+    public void Initialize()
+    {
         EnsureTable();
     }
 
