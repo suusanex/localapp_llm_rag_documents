@@ -4,6 +4,12 @@ using Microsoft.Extensions.Options;
 
 namespace LocalLlmRagApp.Data;
 
+public enum EmbeddingModelType
+{
+    IntfloatMultilingualE5Base, // 768ŸŒ³
+    IntfloatMultilingualE5Large // 1024ŸŒ³
+}
+
 public class Embedder
 {
     private InferenceSession? _session;
@@ -12,9 +18,20 @@ public class Embedder
     private bool _initialized = false;
     private const int MaxLength = 128; // ƒ‚ƒfƒ‹‚ÌÅ‘å’·‚É‡‚í‚¹‚Ä’²®
 
-    public Embedder(IOptions<AppConfig> config)
+    public static int GetDimensions(EmbeddingModelType type) => type switch
+    {
+        EmbeddingModelType.IntfloatMultilingualE5Base => 768,
+        EmbeddingModelType.IntfloatMultilingualE5Large => 1024,
+        _ => throw new NotSupportedException()
+    };
+
+    public EmbeddingModelType ModelType { get; }
+    public int EmbeddingDimensions => GetDimensions(ModelType);
+
+    public Embedder(IOptions<AppConfig> config, EmbeddingModelType modelType = EmbeddingModelType.IntfloatMultilingualE5Base)
     {
         _config = config;
+        ModelType = modelType;
     }
 
     public void Initialize()

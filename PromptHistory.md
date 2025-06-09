@@ -63,4 +63,6 @@
     System.OverflowException HResult=0x80131516 Message=Value was either too large or too small for a UInt16. Source=System.Private.CoreLib スタック トレース: 場所 System.Convert.ThrowUInt16OverflowException()
 1. PgvectorDb.AddAsyncメソッドに渡されているのがfloat[98304]となっており、つまりvectorの次元が98304になっています。使用しているEmbeddingのモデルintfloat/multilingual-e5-largeは1024次元のはずなので、Embedderクラスの実装がおかしいように見えます。修正してください。また、それを使用するためにはPgvectorDbの作成するテーブルは1024次元にする必要があります。
 1. 引き続き、PgvectorDb.AddAsyncメソッドに渡されているのがfloat[98304]となっています。これが二次元テンソルなのであれば、最終的な出力としてfloat[1024]を得るために、平均などの処理が必要と考えられます。その処理が抜けているのであれば、追加してください。
+1. PgvectorDbの次元数は、Embedderが使用しているモデルによって異なるようです。現状では、intfloat-multilingual-e5モデルを使用しており、Baseモデルでは768、Largeモデルでは1024となります。このため、Embedderクラス内に使用するモデルの定義を持ってそれに対応する次元数を公開し、PgvectorDbはEmbedeerから次元数を取得するように実装してください。また、Embedderクラス内でのモデルと次元数の定義は、その対応関係が明確になるように、enumなどを使用してモデル名と次元数の対応付けがソースコードから読み取れるようにしてください。 現状で使用する値は、intfloat-multilingual-e5モデルのBaseであり、768です。
+1. PgvectorDbがEmbedderクラスそのものを使用するのは、依存が強すぎるため避けたいです。2つのクラスの呼び出し元がこの2つを適切に操作することでPgvectorDbクラスへ次元数を与えるか、もしくはEmbedderクラスが次元数だけを取得するI/Fを公開してPgvectorDbはそれを使用する、などというように依存を弱めてください。
 

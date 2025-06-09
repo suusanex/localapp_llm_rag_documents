@@ -47,11 +47,12 @@ public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostAp
                 var folder = args[2];
                 var markdown = new MarkdownFiles();
                 var chunker = new Chunker();
-                var embedder = new Embedder(_Options);
+                var embedder = new Embedder(_Options, EmbeddingModelType.IntfloatMultilingualE5Base); // 明示的にBaseを指定
                 embedder.Initialize();
                 // ConnectionStringをUserSecretsから取得
                 var connectionString = _config.GetSection("ConnectionStrings")["DefaultConnection"];
-                var vectorDb = new PgvectorDb(connectionString);
+                var vectorDimensions = Embedder.GetDimensions(EmbeddingModelType.IntfloatMultilingualE5Base);
+                var vectorDb = new PgvectorDb(connectionString, vectorDimensions); // 次元数のみ渡す
                 await vectorDb.InitializeAsync(); // 明示的な初期化を非同期で呼び出し
                 foreach (var file in markdown.GetMarkdownFilePaths(folder))
                 {
