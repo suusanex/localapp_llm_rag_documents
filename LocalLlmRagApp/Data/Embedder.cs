@@ -46,7 +46,8 @@ public class Embedder
             NamedOnnxValue.CreateFromTensor("attention_mask", maskTensor)
         };
         using var results = _session!.Run(inputs);
-        var embedding = results.First().AsEnumerable<float>().ToArray();
+        // ONNXo—Íshape‚ª[1, 1024]“™‚Ìê‡‚É1ŸŒ³”z—ñ‚Ö•ÏŠ·
+        var embedding = results.First().AsTensor<float>().ToArray();
         return embedding;
     }
 }
