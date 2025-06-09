@@ -66,4 +66,8 @@
 1. PgvectorDbの次元数は、Embedderが使用しているモデルによって異なるようです。現状では、intfloat-multilingual-e5モデルを使用しており、Baseモデルでは768、Largeモデルでは1024となります。このため、Embedderクラス内に使用するモデルの定義を持ってそれに対応する次元数を公開し、PgvectorDbはEmbedeerから次元数を取得するように実装してください。また、Embedderクラス内でのモデルと次元数の定義は、その対応関係が明確になるように、enumなどを使用してモデル名と次元数の対応付けがソースコードから読み取れるようにしてください。 現状で使用する値は、intfloat-multilingual-e5モデルのBaseであり、768です。
 1. PgvectorDbがEmbedderクラスそのものを使用するのは、依存が強すぎるため避けたいです。2つのクラスの呼び出し元がこの2つを適切に操作することでPgvectorDbクラスへ次元数を与えるか、もしくはEmbedderクラスが次元数だけを取得するI/Fを公開してPgvectorDbはそれを使用する、などというように依存を弱めてください。
 1. PgVectorDbで作成するテーブルについて、実行時にテーブルを削除して作り直すモードと、既存のテーブルに追加するモードを、選択できるようにしてください。ただしこれは今後の拡張のために実装しておくだけです。現時点では、呼び出し元でハードコーディングで選択することで、削除して作り直すモードだけを呼び出します。
+1. LlmService.ChatAsyncメソッドで、次の例外が発生します。修正してください。 
+    Microsoft.ML.OnnxRuntime.OnnxRuntimeException HResult=0x80131500 Message=[ErrorCode:RuntimeException] Non-zero status code returned while running Shape node. Name:'/model/attn_mask_reformat/attn_mask_subgraph/Shape' Status Message: D:\a_work\1\s\include\onnxruntime\core/framework/op_kernel_context.h:42 onnxruntimeOpKernelContextInput Missing Input: attention_mask
+    Source=Microsoft.ML.OnnxRuntime スタック トレース: 場所 Microsoft.ML.OnnxRuntime.NativeApiStatus.VerifySuccess(IntPtr nativeStatus)
+
 
