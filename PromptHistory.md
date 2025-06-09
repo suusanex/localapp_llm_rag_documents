@@ -52,10 +52,13 @@
     System.InvalidCastException: 'Writing values of 'Pgvector.Vector' is not supported for parameters having DataTypeName 'public.vector'.'
 1. 次のエラーが表示されています。新形式に直してください。
     'NpgsqlConnection.TypeMapper' は旧形式です ('Connection-level type mapping is no longer supported. See the 7.0 release notes for configuring type mapping on NpgsqlDataSource.')
-1. System.OverflowException
+1. PgVectorDb.AddAsyncメソッドで下記の例外が出ます。テーブルの定義はTEXTとVECTORのみなので、理由が分かりません。この問題を修正してください。 
+  System.OverflowException
   HResult=0x80131516
   Message=Value was either too large or too small for a UInt16.
   Source=System.Private.CoreLib
   スタック トレース:
    場所 System.Convert.ThrowUInt16OverflowException()
+1. 修正後も、次のエラーが発生します。まだ問題があるようです。修正してください。
+    System.OverflowException HResult=0x80131516 Message=Value was either too large or too small for a UInt16. Source=System.Private.CoreLib スタック トレース: 場所 System.Convert.ThrowUInt16OverflowException()
 
