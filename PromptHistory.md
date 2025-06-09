@@ -47,3 +47,9 @@
 1. PgvectorDbクラスのコンストラクタへ渡すConnectionStringについて、UserSecretsのConnectionStrings.DefaultConnectionを読み込んで渡すように書き換えてください。
 1. コンストラクタ内では例外を投げる可能性がある処理を行わず、そうした処理は別途明示的な初期化メソッドなどで実行するようにしてください。DIを使用していることで、コンストラクタで例外が発生し得ると、シーケンス上の処理順序が保証されていないことなどの理由でデバッグがやりづらくなるためです。 現状では、PgvectorDbクラスがこれに違反しているようです。
 1. 同期メソッドNpgsqlConnection.Open()には既知の問題があるようです。非同期メソッドをasync/awaitを使用して呼び出す形へ変更してください。
+1. AddAsyncメソッドで、 cmd.ExecuteNonQueryAsync() の部分で下記の例外が出ます。問題点を修正してください。
+
+    System.InvalidCastException: 'Writing values of 'Pgvector.Vector' is not supported for parameters having DataTypeName 'public.vector'.'
+1. 次のエラーが表示されています。新形式に直してください。
+    'NpgsqlConnection.TypeMapper' は旧形式です ('Connection-level type mapping is no longer supported. See the 7.0 release notes for configuring type mapping on NpgsqlDataSource.')
+    

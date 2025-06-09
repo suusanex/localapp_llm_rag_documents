@@ -7,13 +7,15 @@ namespace LocalLlmRagApp.Data;
 
 public class PgvectorDb : IVectorDb
 {
-    private readonly string _connectionString;
+    private readonly NpgsqlDataSource _dataSource;
     private readonly string _tableName;
     private readonly int _vectorDimensions;
 
     public PgvectorDb(string connectionString, string tableName = "embeddings", int vectorDimensions = 768)
     {
-        _connectionString = connectionString;
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+        dataSourceBuilder.UseVector();
+        _dataSource = dataSourceBuilder.Build();
         _tableName = tableName;
         _vectorDimensions = vectorDimensions;
     }
@@ -25,8 +27,7 @@ public class PgvectorDb : IVectorDb
 
     private async Task EnsureTableAsync()
     {
-        await using var conn = new NpgsqlConnection(_connectionString);
-        await conn.OpenAsync();
+        await using var conn = await _dataSource.OpenConnectionAsync();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $@"
             CREATE TABLE IF NOT EXISTS {_tableName} (
@@ -39,8 +40,7 @@ public class PgvectorDb : IVectorDb
 
     public async Task AddAsync(string id, float[] vector, string text)
     {
-        await using var conn = new NpgsqlConnection(_connectionString);
-        await conn.OpenAsync();
+        await using var conn = await _dataSource.OpenConnectionAsync();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $"INSERT INTO {_tableName} (id, embedding, text) VALUES (@id, @embedding, @text) ON CONFLICT (id) DO UPDATE SET embedding = EXCLUDED.embedding, text = EXCLUDED.text;";
         cmd.Parameters.AddWithValue("@id", id);
@@ -51,8 +51,7 @@ public class PgvectorDb : IVectorDb
 
     public async Task<(string text, float score)[]> SearchAsync(float[] queryVector, int topK = 5)
     {
-        await using var conn = new NpgsqlConnection(_connectionString);
-        await conn.OpenAsync();
+        await using var conn = await _dataSource.OpenConnectionAsync();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $@"
             SELECT text, (embedding <#> @query) AS score
