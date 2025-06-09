@@ -4,7 +4,7 @@ using LocalLlmRagApp.Llm;
 namespace LocalLlmRagApp;
 
 public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostApplicationLifetime _AppLifetime,
-    IOptions<AppConfig> _Options, ILlmService _llmService) : IHostedService
+    IOptions<AppConfig> _Options, ILlmService _llmService, IConfiguration _config) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -49,7 +49,9 @@ public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostAp
                 var chunker = new Chunker();
                 var embedder = new Embedder(_Options);
                 embedder.Initialize();
-                var vectorDb = new InMemoryVectorDb(); // 必要に応じてPgvectorDb等に差し替え
+                // ConnectionStringをUserSecretsから取得
+                var connectionString = _config.GetSection("ConnectionStrings")["DefaultConnection"];
+                var vectorDb = new PgvectorDb(connectionString);
                 foreach (var file in markdown.GetMarkdownFilePaths(folder))
                 {
                     var text = markdown.ReadFile(file);

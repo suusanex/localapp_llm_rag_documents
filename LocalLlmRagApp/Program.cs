@@ -40,6 +40,8 @@ void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     services.AddSingleton<Embedder>();
     services.AddSingleton<IVectorDb, InMemoryVectorDb>();
     services.AddSingleton<ILlmService, OnnxLlmService>();
+    // IConfigurationをDIに追加（HostBuilderで自動登録されるが明示的に記載）
+    services.AddSingleton<IConfiguration>(sp => context.Configuration);
 }
 
 [Conditional("DEBUG")]
