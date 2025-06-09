@@ -43,9 +43,12 @@ public class PgvectorDb : IVectorDb
         await using var conn = await _dataSource.OpenConnectionAsync();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $"INSERT INTO {_tableName} (id, embedding, text) VALUES (@id, @embedding, @text) ON CONFLICT (id) DO UPDATE SET embedding = EXCLUDED.embedding, text = EXCLUDED.text;";
-        cmd.Parameters.AddWithValue("@id", id);
+
+        // å^éwíËÇÕid/textÇÃÇ›ÅAembeddingÇÕAddWithValueÇ≈VectorÇíºê⁄ìnÇ∑
+        cmd.Parameters.Add(new NpgsqlParameter("@id", NpgsqlTypes.NpgsqlDbType.Text) { Value = id });
         cmd.Parameters.AddWithValue("@embedding", new Vector(vector));
-        cmd.Parameters.AddWithValue("@text", text);
+        cmd.Parameters.Add(new NpgsqlParameter("@text", NpgsqlTypes.NpgsqlDbType.Text) { Value = text });
+
         await cmd.ExecuteNonQueryAsync();
     }
 
