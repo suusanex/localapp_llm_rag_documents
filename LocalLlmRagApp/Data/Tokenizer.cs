@@ -24,4 +24,11 @@ public class Tokenizer
         var encoding = _tokenizer.EncodeToIds(text);
         return encoding.Select(id => (long)id).ToArray();
     }
+
+    public string Decode(long[] tokenIds)
+    {
+        // SentencePieceTokenizer expects int[]
+        var ids = tokenIds.Select(x => (int)x).ToArray();
+        return _tokenizer.DecodeIds(ids);
+    }
 }
