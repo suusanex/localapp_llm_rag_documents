@@ -38,7 +38,7 @@ void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     services.AddSingleton<MarkdownFiles>();
     services.AddSingleton<Chunker>();
     services.AddSingleton<Embedder>();
-    services.AddSingleton<IVectorDb, InMemoryVectorDb>();
+    services.AddSingleton<IVectorDb, InMemoryVectorDb>(); // PgvectorDbを使う場合はここも修正が必要
     services.AddSingleton<ILlmService, OnnxLlmService>();
     // IConfigurationをDIに追加（HostBuilderで自動登録されるが明示的に記載）
     services.AddSingleton<IConfiguration>(sp => context.Configuration);

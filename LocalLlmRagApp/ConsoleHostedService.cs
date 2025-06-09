@@ -52,14 +52,14 @@ public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostAp
                 // ConnectionStringをUserSecretsから取得
                 var connectionString = _config.GetSection("ConnectionStrings")["DefaultConnection"];
                 var vectorDb = new PgvectorDb(connectionString);
-                vectorDb.Initialize(); // 明示的な初期化を追加
+                await vectorDb.InitializeAsync(); // 明示的な初期化を非同期で呼び出し
                 foreach (var file in markdown.GetMarkdownFilePaths(folder))
                 {
                     var text = markdown.ReadFile(file);
                     foreach (var chunk in chunker.Chunk(text))
                     {
                         var vec = embedder.Embed(chunk);
-                        vectorDb.Add(Guid.NewGuid().ToString(), vec, chunk);
+                        await vectorDb.AddAsync(Guid.NewGuid().ToString(), vec, chunk);
                     }
                 }
                 Console.WriteLine($"RAGデータソース構築完了: {folder}");

@@ -77,7 +77,7 @@ public class Phi3MiniOnnxLlmService : ILlmService
     {
         if (!_initialized) throw new InvalidOperationException("Phi3MiniOnnxLlmService is not initialized. Call Initialize() first.");
         var queryVec = _embedder.Embed(prompt);
-        var similarChunks = _vectorDb.Search(queryVec, topK: 3).Select(x => x.text).ToArray();
+        var similarChunks = (await _vectorDb.SearchAsync(queryVec, topK: 3)).Select(x => x.text).ToArray();
         var ragPrompt = $"<|system|>You are a helpful assistant. Use the following context to answer the user's question.<|end|>\n<|context|>\n{string.Join("\n---\n", similarChunks)}\n<|end|>\n<|user|>{prompt}<|end|>\n<|assistant|>";
         var inputTokens = _tokenizer!.Encode(ragPrompt);
         var generatorParams = new GeneratorParams(_model!);
