@@ -52,7 +52,7 @@ public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostAp
                 // ConnectionStringをUserSecretsから取得
                 var connectionString = _config.GetSection("ConnectionStrings")["DefaultConnection"];
                 var vectorDimensions = Embedder.GetDimensions(EmbeddingModelType.IntfloatMultilingualE5Base);
-                var vectorDb = new PgvectorDb(connectionString, vectorDimensions); // 次元数のみ渡す
+                var vectorDb = new PgvectorDb(connectionString, vectorDimensions, recreateTable: true); // テーブルを削除して作り直すモードをハードコーディング
                 await vectorDb.InitializeAsync(); // 明示的な初期化を非同期で呼び出し
                 foreach (var file in markdown.GetMarkdownFilePaths(folder))
                 {

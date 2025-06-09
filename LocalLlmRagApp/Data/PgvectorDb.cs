@@ -10,14 +10,16 @@ public class PgvectorDb : IVectorDb
     private readonly NpgsqlDataSource _dataSource;
     private readonly string _tableName;
     private readonly int _vectorDimensions;
+    private readonly bool _recreateTable;
 
-    public PgvectorDb(string connectionString, int vectorDimensions, string tableName = "embeddings")
+    public PgvectorDb(string connectionString, int vectorDimensions, string tableName = "embeddings", bool recreateTable = false)
     {
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         dataSourceBuilder.UseVector();
         _dataSource = dataSourceBuilder.Build();
         _tableName = tableName;
         _vectorDimensions = vectorDimensions;
+        _recreateTable = recreateTable;
     }
 
     public async Task InitializeAsync()
@@ -29,6 +31,11 @@ public class PgvectorDb : IVectorDb
     {
         await using var conn = await _dataSource.OpenConnectionAsync();
         await using var cmd = conn.CreateCommand();
+        if (_recreateTable)
+        {
+            cmd.CommandText = $"DROP TABLE IF EXISTS {_tableName};";
+            await cmd.ExecuteNonQueryAsync();
+        }
         cmd.CommandText = $@"
             CREATE TABLE IF NOT EXISTS {_tableName} (
                 id TEXT PRIMARY KEY,
