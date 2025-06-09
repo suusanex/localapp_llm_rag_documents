@@ -40,7 +40,14 @@ public class OnnxLlmService : ILlmService
         var inputIds = Encoding.UTF8.GetBytes(prompt).Select(b => (long)b).ToArray();
         var inputTensor = new DenseTensor<long>(new[] { 1, inputIds.Length });
         for (int i = 0; i < inputIds.Length; i++) inputTensor[0, i] = inputIds[i];
-        var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor("input_ids", inputTensor) };
+        // attention_maskを追加
+        var attentionMask = new long[inputIds.Length];
+        for (int i = 0; i < inputIds.Length; i++) attentionMask[i] = 1;
+        var attentionMaskTensor = new DenseTensor<long>(attentionMask, new[] { 1, inputIds.Length });
+        var inputs = new List<NamedOnnxValue> {
+            NamedOnnxValue.CreateFromTensor("input_ids", inputTensor),
+            NamedOnnxValue.CreateFromTensor("attention_mask", attentionMaskTensor)
+        };
         using var results = _session!.Run(inputs);
         var outputTensor = results.First().AsEnumerable<long>().ToArray();
         var response = Encoding.UTF8.GetString(outputTensor.Select(x => (byte)x).ToArray());
