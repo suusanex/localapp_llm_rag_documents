@@ -52,6 +52,7 @@ public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostAp
                 // ConnectionStringをUserSecretsから取得
                 var connectionString = _config.GetSection("ConnectionStrings")["DefaultConnection"];
                 var vectorDb = new PgvectorDb(connectionString);
+                vectorDb.Initialize(); // 明示的な初期化を追加
                 foreach (var file in markdown.GetMarkdownFilePaths(folder))
                 {
                     var text = markdown.ReadFile(file);
