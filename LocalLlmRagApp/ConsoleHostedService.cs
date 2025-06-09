@@ -68,11 +68,7 @@ public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostAp
             else
             {
                 // チャットモード
-                if (_llmService is Phi3MiniOnnxLlmService phi3)
-                {
-                    phi3.Initialize();
-                }
-                else if (_llmService is OnnxLlmService onnx)
+                if (_llmService is OnnxLlmService onnx)
                 {
                     onnx.Initialize();
                 }
