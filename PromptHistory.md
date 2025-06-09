@@ -62,4 +62,5 @@
 1. 修正後も、次のエラーが発生します。まだ問題があるようです。修正してください。
     System.OverflowException HResult=0x80131516 Message=Value was either too large or too small for a UInt16. Source=System.Private.CoreLib スタック トレース: 場所 System.Convert.ThrowUInt16OverflowException()
 1. PgvectorDb.AddAsyncメソッドに渡されているのがfloat[98304]となっており、つまりvectorの次元が98304になっています。使用しているEmbeddingのモデルintfloat/multilingual-e5-largeは1024次元のはずなので、Embedderクラスの実装がおかしいように見えます。修正してください。また、それを使用するためにはPgvectorDbの作成するテーブルは1024次元にする必要があります。
+1. 引き続き、PgvectorDb.AddAsyncメソッドに渡されているのがfloat[98304]となっています。これが二次元テンソルなのであれば、最終的な出力としてfloat[1024]を得るために、平均などの処理が必要と考えられます。その処理が抜けているのであれば、追加してください。
 
