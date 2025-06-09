@@ -46,8 +46,43 @@ public class Embedder
             NamedOnnxValue.CreateFromTensor("attention_mask", maskTensor)
         };
         using var results = _session!.Run(inputs);
-        // ONNXo—Íshape‚ª[1, 1024]“™‚Ìê‡‚É1ŸŒ³”z—ñ‚Ö•ÏŠ·
-        var embedding = results.First().AsTensor<float>().ToArray();
-        return embedding;
+        var tensor = results.First().AsTensor<float>();
+        var shape = tensor.Dimensions.ToArray();
+        if (shape.Length == 3 && shape[0] == 1) // [1, N, 1024]
+        {
+            int n = shape[1];
+            int d = shape[2];
+            var arr = tensor.ToArray();
+            var pooled = new float[d];
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < d; j++)
+                    pooled[j] += arr[i * d + j];
+            for (int j = 0; j < d; j++) pooled[j] /= n;
+            return pooled;
+        }
+        else if (shape.Length == 2 && shape[0] > 1) // [N, 1024]
+        {
+            int n = shape[0];
+            int d = shape[1];
+            var arr = tensor.ToArray();
+            var pooled = new float[d];
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < d; j++)
+                    pooled[j] += arr[i * d + j];
+            for (int j = 0; j < d; j++) pooled[j] /= n;
+            return pooled;
+        }
+        else if (shape.Length == 2 && shape[0] == 1) // [1, 1024]
+        {
+            return tensor.ToArray();
+        }
+        else if (shape.Length == 1 && shape[0] == 1024) // [1024]
+        {
+            return tensor.ToArray();
+        }
+        else
+        {
+            throw new InvalidOperationException($"Unexpected embedding shape: [{string.Join(",", shape)}]");
+        }
     }
 }
