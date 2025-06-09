@@ -1,6 +1,7 @@
 using Pgvector;
 using Npgsql;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace LocalLlmRagApp.Data;
 
@@ -17,42 +18,42 @@ public class PgvectorDb : IVectorDb
         _vectorDimensions = vectorDimensions;
     }
 
-    public void Initialize()
+    public async Task InitializeAsync()
     {
-        EnsureTable();
+        await EnsureTableAsync();
     }
 
-    private void EnsureTable()
+    private async Task EnsureTableAsync()
     {
-        using var conn = new NpgsqlConnection(_connectionString);
-        conn.Open();
-        using var cmd = conn.CreateCommand();
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
         cmd.CommandText = $@"
             CREATE TABLE IF NOT EXISTS {_tableName} (
                 id TEXT PRIMARY KEY,
                 embedding VECTOR({_vectorDimensions}),
                 text TEXT
             );";
-        cmd.ExecuteNonQuery();
+        await cmd.ExecuteNonQueryAsync();
     }
 
-    public void Add(string id, float[] vector, string text)
+    public async Task AddAsync(string id, float[] vector, string text)
     {
-        using var conn = new NpgsqlConnection(_connectionString);
-        conn.Open();
-        using var cmd = conn.CreateCommand();
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
         cmd.CommandText = $"INSERT INTO {_tableName} (id, embedding, text) VALUES (@id, @embedding, @text) ON CONFLICT (id) DO UPDATE SET embedding = EXCLUDED.embedding, text = EXCLUDED.text;";
         cmd.Parameters.AddWithValue("@id", id);
         cmd.Parameters.AddWithValue("@embedding", new Vector(vector));
         cmd.Parameters.AddWithValue("@text", text);
-        cmd.ExecuteNonQuery();
+        await cmd.ExecuteNonQueryAsync();
     }
 
-    public (string text, float score)[] Search(float[] queryVector, int topK = 5)
+    public async Task<(string text, float score)[]> SearchAsync(float[] queryVector, int topK = 5)
     {
-        using var conn = new NpgsqlConnection(_connectionString);
-        conn.Open();
-        using var cmd = conn.CreateCommand();
+        await using var conn = new NpgsqlConnection(_connectionString);
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
         cmd.CommandText = $@"
             SELECT text, (embedding <#> @query) AS score
             FROM {_tableName}
@@ -60,9 +61,9 @@ public class PgvectorDb : IVectorDb
             LIMIT @topK;";
         cmd.Parameters.AddWithValue("@query", new Vector(queryVector));
         cmd.Parameters.AddWithValue("@topK", topK);
-        using var reader = cmd.ExecuteReader();
+        await using var reader = await cmd.ExecuteReaderAsync();
         var results = new List<(string text, float score)>();
-        while (reader.Read())
+        while (await reader.ReadAsync())
         {
             var text = reader.GetString(0);
             var score = reader.GetFloat(1);
