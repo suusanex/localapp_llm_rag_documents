@@ -1,15 +1,34 @@
 using System.Collections.Generic;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace LocalLlmRagApp.Data;
 
 public class Chunker
 {
-    public IEnumerable<string> Chunk(string text, int maxLength = 512)
+    public IEnumerable<string> Chunk(string text)
     {
-        // シンプルなチャンク分割（maxLengthごとに分割）
-        for (int i = 0; i < text.Length; i += maxLength)
+        // Markdownの見出しレベル1～3（#, ##, ###）ごとにチャンク分割
+        var lines = text.Split('\n');
+        StringBuilder chunkBuilder = new StringBuilder();
+        bool firstSection = true;
+        var headingRegex = new Regex(@"^\s*#{1,3} ");
+        foreach (var line in lines)
         {
-            yield return text.Substring(i, Math.Min(maxLength, text.Length - i));
+            if (headingRegex.IsMatch(line))
+            {
+                if (!firstSection && chunkBuilder.Length > 0)
+                {
+                    yield return chunkBuilder.ToString().Trim();
+                    chunkBuilder.Clear();
+                }
+                firstSection = false;
+            }
+            chunkBuilder.AppendLine(line);
+        }
+        if (chunkBuilder.Length > 0)
+        {
+            yield return chunkBuilder.ToString().Trim();
         }
     }
 }
