@@ -54,7 +54,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         {
             // RAG: プロンプトの拡張
             var queryVector = GetEmbedding(prompt);
-            var similarChunks = await _vectorDb.SearchAsync(queryVector, topK: 3);
+            var similarChunks = await _vectorDb.SearchAsync(queryVector, topK: 10);
             var context = string.Join("\n", similarChunks.Select(x => x.text));
 
             // プロンプトの構築
