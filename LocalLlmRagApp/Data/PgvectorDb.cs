@@ -7,12 +7,21 @@ namespace LocalLlmRagApp.Data;
 
 public class PgvectorDb : IVectorDb
 {
-    private readonly NpgsqlDataSource _dataSource;
-    private readonly string _tableName;
-    private readonly int _vectorDimensions;
-    private readonly bool _recreateTable;
+    private NpgsqlDataSource _dataSource;
+    private string _tableName;
+    private int _vectorDimensions;
+    private bool _recreateTable;
 
-    public PgvectorDb(string connectionString, int vectorDimensions, string tableName = "embeddings", bool recreateTable = false)
+    public void InitializeForReadOnlyAsync(string connectionString, string tableName = "embeddings")
+    {
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+        dataSourceBuilder.UseVector();
+        _dataSource = dataSourceBuilder.Build();
+        _tableName = tableName;
+
+    }
+    
+    public async Task InitializeForWriteAsync(string connectionString, int vectorDimensions, string tableName = "embeddings", bool recreateTable = false)
     {
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         dataSourceBuilder.UseVector();
@@ -20,10 +29,6 @@ public class PgvectorDb : IVectorDb
         _tableName = tableName;
         _vectorDimensions = vectorDimensions;
         _recreateTable = recreateTable;
-    }
-
-    public async Task InitializeAsync()
-    {
         await EnsureTableAsync();
     }
 
