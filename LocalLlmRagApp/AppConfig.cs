@@ -21,7 +21,7 @@ public class AppConfig
     /// <summary>
     /// LLM用ONNXモデルファイルのパス（必須）
     /// </summary>
-    public string LlmOnnxModelPath { get; set; }
+    public string LlmOnnxModelDirPath { get; set; }
 
     /// <summary>
     /// トークナイザーモデルファイルのパス（必須）
@@ -32,8 +32,8 @@ public class AppConfig
     {
         if (string.IsNullOrWhiteSpace(EmbeddingOnnxModelPath))
             throw new InvalidOperationException("AppConfig.EmbeddingOnnxModelPath is required.");
-        if (string.IsNullOrWhiteSpace(LlmOnnxModelPath))
-            throw new InvalidOperationException("AppConfig.LlmOnnxModelPath is required.");
+        if (string.IsNullOrWhiteSpace(LlmOnnxModelDirPath))
+            throw new InvalidOperationException("AppConfig.LlmOnnxModelDirPath is required.");
         if (string.IsNullOrWhiteSpace(TokenizerModelPath))
             throw new InvalidOperationException("AppConfig.TokenizerModelPath is required.");
     }
