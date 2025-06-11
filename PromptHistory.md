@@ -99,5 +99,8 @@
     https://learn.microsoft.com/ja-jp/windows/ai/models/get-started-models-genai
     ソースコードとしては、次のGitHubリポジトリも参考になりそうです。
     https://github.com/microsoft/Phi3-Chat-WinUI3-Sample/
+1. Chunker.Chunk()について、引数のテキストをmarkdownとして解釈し、markdownファイルの見出しレベル3を1単位としてチャンク分割する処理を実装してください。この時、文字列の最大長（maxLength）の判定は不要です。
+1. Markdownの見出しレベル3を最小単位として分割したいため、3以下の見出しを分割対象としてください。
+
 
 
