@@ -13,7 +13,7 @@ public enum EmbeddingModelType
 public class Embedder
 {
     private InferenceSession? _session;
-    private Tokenizer? _tokenizer;
+    private EmbedderTokenizer? _tokenizer;
     private readonly IOptions<AppConfig> _config;
     private bool _initialized = false;
     private const int MaxLength = 128; // ÉÇÉfÉãÇÃç≈ëÂí∑Ç…çáÇÌÇπÇƒí≤êÆ
@@ -41,7 +41,7 @@ public class Embedder
         if (string.IsNullOrWhiteSpace(modelPath))
             throw new InvalidOperationException("AppConfig.EmbeddingOnnxModelPath is required.");
         _session = new InferenceSession(modelPath);
-        _tokenizer = new Tokenizer(_config);
+        _tokenizer = new EmbedderTokenizer(_config);
         _initialized = true;
     }
 
