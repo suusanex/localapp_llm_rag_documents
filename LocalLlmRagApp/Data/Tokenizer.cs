@@ -5,12 +5,12 @@ using Microsoft.Extensions.Options;
 
 namespace LocalLlmRagApp.Data;
 
-// --- TokenizerのE5用実装（Microsoft.ML.Tokenizers利用） ---
-public class Tokenizer
+// --- Embedder用Tokenizer（Microsoft.ML.Tokenizers利用） ---
+public class EmbedderTokenizer
 {
     private readonly SentencePieceTokenizer _tokenizer;
 
-    public Tokenizer(IOptions<AppConfig> config)
+    public EmbedderTokenizer(IOptions<AppConfig> config)
     {
         var modelPath = config.Value.TokenizerModelPath;
         if (string.IsNullOrWhiteSpace(modelPath))

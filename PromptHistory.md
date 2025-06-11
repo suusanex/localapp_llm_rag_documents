@@ -83,6 +83,21 @@
     https://learn.microsoft.com/ja-jp/windows/ai/models/get-started-models-genai
     ソースコードとしては、次のGitHubリポジトリも参考になりそうです。
     https://github.com/microsoft/Phi3-Chat-WinUI3-Sample/
+1. LlmService.ChatAsyncの_session!.Run()呼び出し部分で、下記の例外が出ました。修正してください。
+    Microsoft.ML.OnnxRuntime.OnnxRuntimeException
+    HResult=0x80131500
+    Message=[ErrorCode:RuntimeException] Non-zero status code returned while running GroupQueryAttention node. Name:'/model/layers.0/attn/GroupQueryAttention' Status Message: D:\a\_work\1\s\include\onnxruntime\core/framework/op_kernel_context.h:42 onnxruntime::OpKernelContext::Input Missing Input: past_key_values.0.key
 
+    Source=Microsoft.ML.OnnxRuntime
+    スタック トレース:
+    場所 Microsoft.ML.OnnxRuntime.NativeApiStatus.VerifySuccess(IntPtr nativeStatus)
+1. LlmService.ChatAsyncで、output.AsTensor<long>()がnullを返します。output.ElementTypeがfloatになっているため、おそらくlongを前提としている処理をfloatを前提とした処理へ変更する必要があります。修正してください。
+1. まず、プロジェクト内のTokenizerクラスは、本プロジェクトのEmbedding処理専用のTokenizerの処理です。混同しないように、それが理解できる名前に変更してください。
+    次に、LlmServiceの処理に使用するべきTokenizerは、Microsoft.ML.OnnxRuntimeGenAI.Tokenizerです。それを前提にして、処理を書き直してください。
+1. ChatAsync()の推論処理に、多数のビルドエラーや動作上の問題が有ります。
+問題の原因を探るために、Microsoft LearnにサンプルのあるONNX Runtime Generative AIを使用したコードのように、Tokenizer.CreateStreamで作成したストリームを使用する方法に変更してください。次のURLで説明されているものです。
+    https://learn.microsoft.com/ja-jp/windows/ai/models/get-started-models-genai
+    ソースコードとしては、次のGitHubリポジトリも参考になりそうです。
+    https://github.com/microsoft/Phi3-Chat-WinUI3-Sample/
 
 
