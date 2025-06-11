@@ -1,11 +1,7 @@
 ﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
-using Microsoft.ML.OnnxRuntimeGenAI;
 using Microsoft.Extensions.Options;
-using System.Text;
-using System.Text.Json;
 using LocalLlmRagApp.Data;
-using Tokenizer = Microsoft.ML.OnnxRuntimeGenAI.Tokenizer;
 
 namespace LocalLlmRagApp.Llm;
 
@@ -16,84 +12,88 @@ public interface ILlmService
 
 public class OnnxLlmService : ILlmService
 {
-    private InferenceSession? _session;
-    private string? _modelPath;
     private readonly IOptions<AppConfig> _config;
-    private bool _initialized = false;
+    private readonly IVectorDb _vectorDb;
+    private readonly ILogger<OnnxLlmService> _logger;
+    private InferenceSession? _session;
     private LocalLlmRagApp.Data.Tokenizer? _tokenizer;
+    private bool _initialized = false;
 
-    public OnnxLlmService(IOptions<AppConfig> config)
+    public OnnxLlmService(IOptions<AppConfig> config, IVectorDb vectorDb, ILogger<OnnxLlmService> logger)
     {
         _config = config;
+        _vectorDb = vectorDb;
+        _logger = logger;
     }
 
     public void Initialize()
     {
         if (_initialized) return;
-        _modelPath = _config.Value.LlmOnnxModelPath ?? "./models/llm-chat-model.onnx";
-        _session = new InferenceSession(_modelPath);
+
+        var modelPath = _config.Value.LlmOnnxModelPath;
+        if (string.IsNullOrEmpty(modelPath))
+            throw new InvalidOperationException("Model path is not configured");
+
+        _session = new InferenceSession(modelPath);
         _tokenizer = new LocalLlmRagApp.Data.Tokenizer(_config);
         _initialized = true;
     }
 
-    public Task<string> ChatAsync(string prompt, CancellationToken cancellationToken = default)
+    public async Task<string> ChatAsync(string prompt, CancellationToken cancellationToken = default)
     {
-        if (!_initialized) throw new InvalidOperationException("OnnxLlmService is not initialized. Call Initialize() first.");
-        var inputIds = _tokenizer!.Encode(prompt);
-        var inputTensor = new DenseTensor<long>(new[] { 1, inputIds.Length });
-        for (int i = 0; i < inputIds.Length; i++) inputTensor[0, i] = inputIds[i];
-        var attentionMask = new long[inputIds.Length];
-        for (int i = 0; i < inputIds.Length; i++) attentionMask[i] = 1;
-        var attentionMaskTensor = new DenseTensor<long>(attentionMask, new[] { 1, inputIds.Length });
-        var inputs = new List<NamedOnnxValue> {
-            NamedOnnxValue.CreateFromTensor("input_ids", inputTensor),
-            NamedOnnxValue.CreateFromTensor("attention_mask", attentionMaskTensor)
-        };
-        // past_key_values.* の入力があればゼロ埋めで渡す
-        foreach (var meta in _session!.InputMetadata)
-        {
-            var name = meta.Key;
-            if (name.StartsWith("past_key_values"))
-            {
-                var dims = meta.Value.Dimensions.ToArray();
-                // -1を1に置き換え（バッチ1、長さ1で初期化）
-                for (int i = 0; i < dims.Length; i++)
-                    if (dims[i] < 1) dims[i] = 1;
-                // float32でゼロ埋め
-                var zeroTensor = new DenseTensor<float>(dims);
-                inputs.Add(NamedOnnxValue.CreateFromTensor(name, zeroTensor));
-            }
-        }
-        using var results = _session.Run(inputs);
-        var output = results.First();
-        string response;
+        if (!_initialized)
+            throw new InvalidOperationException("Service is not initialized");
+
         try
         {
-            if (output.AsTensor<long>() is Tensor<long> longTensor)
+            // RAG: プロンプトの拡張
+            var queryVector = GetEmbedding(prompt);
+            var similarChunks = await _vectorDb.SearchAsync(queryVector, topK: 3);
+            var context = string.Join("\n", similarChunks.Select(x => x.text));
+
+            // プロンプトの構築
+            var format = $@"<|system|>You are a helpful AI assistant. Use this context to answer: {context}<|end|>
+<|user|>{prompt}<|end|>
+<|assistant|>";
+
+            // トークン化
+            var inputIds = _tokenizer!.Encode(format);
+            var container = new List<NamedOnnxValue>();
+
             {
-                var tokenIds = longTensor.ToArray();
-                response = _tokenizer.Decode(tokenIds);
-            }
-            else if (output.AsTensor<int>() is Tensor<int> intTensor)
-            {
-                var tokenIds = intTensor.ToArray().Select(x => (long)x).ToArray();
-                response = _tokenizer.Decode(tokenIds);
-            }
-            else if (output.AsTensor<float>() is Tensor<float> floatTensor)
-            {
-                var logits = floatTensor.ToArray();
-                long tokenId = Array.IndexOf(logits, logits.Max());
-                response = _tokenizer.Decode(new long[] { tokenId });
-            }
-            else
-            {
-                response = "[ERROR: Unknown output type from ONNX model]";
+                // テンソルの作成
+                var shape = new[] { 1, inputIds.Length };
+                var inputTensor = new DenseTensor<long>(inputIds, shape);
+                container.Add(NamedOnnxValue.CreateFromTensor("input_ids", inputTensor));
+
+                // attention mask
+                var attentionMask = new long[inputIds.Length];
+                Array.Fill(attentionMask, 1);
+                var attentionTensor = new DenseTensor<long>(attentionMask, shape);
+                container.Add(NamedOnnxValue.CreateFromTensor("attention_mask", attentionTensor));
+
+                // 推論の実行
+                using var results = _session!.Run(container);
+                var output = results.First();
+
+                // 結果の処理
+                var outputTensor = output.AsTensor<long>();
+                var response = _tokenizer.Decode(outputTensor.ToArray());
+
+                return response;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            response = "[ERROR: Failed to decode ONNX output]";
+            _logger.LogError(ex, "Chat error");
+            return $"Error: {ex.Message}";
         }
-        return Task.FromResult(response);
+    }
+
+    private float[] GetEmbedding(string text)
+    {
+        var embedder = new Embedder(_config);
+        embedder.Initialize();
+        return embedder.Embed(text);
     }
 }

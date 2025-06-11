@@ -78,5 +78,11 @@
     スタック トレース:
     場所 Microsoft.ML.OnnxRuntime.NativeApiStatus.VerifySuccess(IntPtr nativeStatus)
 1. ChatAsyncメソッドの戻り値に、UTF-8では読み取れない下記のような文字列が返ってきます。おそらくレスポンスの解釈方法に誤りがあると思うのですが、考えられる修正を行ってください。（エラー文字列は省略）
+1. OnnxLlmService.ChatAsync()メソッドが正常に動作しません。このメソッドは、Phi-3-mini-4k-instruct-onnxのONNXファイルを使用してチャットを行う処理であり、かつチャットを送信する前にRAGの処理を行う（関連性の高い情報をPgvectorDbクラスが扱っているDBから取得し、コンテキストとして送信時に付与する）機能を持つはずです。
+    問題の原因を探るために、現状のコードはいったん捨てて、Microsoft LearnにサンプルのあるONNX Runtime Generative AIを使用したコードに書き換えてください。次のURLで説明されているものです。
+    https://learn.microsoft.com/ja-jp/windows/ai/models/get-started-models-genai
+    ソースコードとしては、次のGitHubリポジトリも参考になりそうです。
+    https://github.com/microsoft/Phi3-Chat-WinUI3-Sample/
+
 
 
