@@ -20,7 +20,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     // モデル・プロンプト関連パラメータ
     private readonly int _contextLength = 4096; // Phi-3-mini-4k-instruct-onnx
     private readonly int _maxResponseTokens = 2048;
-    private readonly int _maxLength = 2048;
+    private readonly int _maxLength = 4096;
     private readonly int _minLength = 512;
     private readonly float _temperature = 0.7f;
     private readonly float _topP = 0.95f;
