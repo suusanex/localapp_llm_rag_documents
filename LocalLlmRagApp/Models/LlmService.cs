@@ -92,7 +92,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     private string BuildSelectionPrompt(string question, List<string> group)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("次の10個のテキストの中から、質問に最も関連性が高いものを2つ選んでください。選んだテキストの番号のみをカンマ区切りで出力してください。\n");
+        sb.AppendLine("次の10個のテキストの中から、質問に最も関連性が高いものを2つ選んでください。選んだテキストの番号のみを1行でカンマ区切りで出力してください。番号以外は一切出力しないでください。\n");
         sb.AppendLine($"質問: {question}\n");
         for (int i = 0; i < group.Count; i++)
         {
@@ -115,13 +115,28 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     private List<string> ParseSelectedChunksFromLlmResult(string llmResult, List<string> group)
     {
         var result = new List<string>();
-        var line = llmResult.Split('\n').FirstOrDefault(l => l.Trim().Any(char.IsDigit));
-        if (line == null) return result;
-        var nums = line.Split(',').Select(s => s.Trim()).Where(s => int.TryParse(s, out _)).Select(int.Parse);
-        foreach (var idx in nums)
+        // 正規表現で [3, 9] や 3,9 などを抽出
+        var regex = new System.Text.RegularExpressions.Regex(@"\[?\s*(\d+)\s*,\s*(\d+)\s*\]?");
+        var match = regex.Match(llmResult);
+        if (match.Success)
         {
-            if (idx >= 0 && idx < group.Count)
-                result.Add(group[idx]);
+            for (int i = 1; i <= 2; i++)
+            {
+                if (int.TryParse(match.Groups[i].Value, out int idx) && idx >= 0 && idx < group.Count)
+                    result.Add(group[idx]);
+            }
+            return result;
+        }
+        // それ以外のパターンも考慮
+        var line = llmResult.Split('\n').FirstOrDefault(l => l.Trim().Any(char.IsDigit));
+        if (line != null)
+        {
+            var nums = line.Split(',').Select(s => s.Trim()).Where(s => int.TryParse(s, out _)).Select(int.Parse);
+            foreach (var idx in nums)
+            {
+                if (idx >= 0 && idx < group.Count)
+                    result.Add(group[idx]);
+            }
         }
         return result;
     }
