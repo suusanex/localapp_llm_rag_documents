@@ -10,7 +10,7 @@ public enum EmbeddingModelType
     IntfloatMultilingualE5Large // 1024ŸŒ³
 }
 
-public class Embedder
+public class Embedder : IEmbedder
 {
     private InferenceSession? _session;
     private EmbedderTokenizer? _tokenizer;
@@ -105,5 +105,17 @@ public class Embedder
         {
             throw new InvalidOperationException($"Unexpected embedding shape: [{string.Join(",", shape)}]");
         }
+    }
+
+    public int MaxTokenLength => MaxLength;
+
+    public int GetTokenCount(string text)
+    {
+        if (_tokenizer == null)
+        {
+            // Tokenizer‚ª–¢‰Šú‰»‚Ìê‡‚Íˆê“I‚É‰Šú‰»
+            _tokenizer = new EmbedderTokenizer(_config);
+        }
+        return _tokenizer.Encode($"passage:{text}").Length;
     }
 }

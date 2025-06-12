@@ -5,7 +5,12 @@ namespace LocalLlmRagApp.Data;
 
 public class Chunker
 {
-    public int MaxChunkLength { get; set; } = 800;
+    private readonly IEmbedder _embedder;
+
+    public Chunker(IEmbedder embedder)
+    {
+        _embedder = embedder;
+    }
 
     public IEnumerable<string> Chunk(string text)
     {
@@ -86,10 +91,9 @@ public class Chunker
         return false;
     }
 
-    // 本文がMaxChunkLengthを超える場合、見出しを付加して分割
+    // 本文がEmbedder.MaxLengthトークン数を超える場合、見出しを付加して分割
     private IEnumerable<string> SplitWithHeadings(string chunk, List<string> headings)
     {
-        // 見出し部分を抽出
         var chunkLines = chunk.Split(Environment.NewLine);
         int headingCount = 0;
         var headingBuilder = new StringBuilder();
@@ -98,7 +102,6 @@ public class Chunker
             headingBuilder.AppendLine(h);
             headingCount++;
         }
-        int headingLength = headingBuilder.Length;
         // 本文部分
         var bodyBuilder = new StringBuilder();
         for (int i = headingCount; i < chunkLines.Length; i++)
@@ -106,23 +109,50 @@ public class Chunker
             bodyBuilder.AppendLine(chunkLines[i]);
         }
         var body = bodyBuilder.ToString().Trim();
-        if (headingLength + body.Length <= MaxChunkLength)
+        var headingText = headingBuilder.ToString();
+        // 1チャンクとしてトークン数が収まる場合
+        string fullChunk = headingText + body;
+        if (_embedder.GetTokenCount(fullChunk) <= _embedder.MaxTokenLength)
         {
             yield return chunk;
             yield break;
         }
         // 本文を分割
-        int maxBodyLen = MaxChunkLength - headingLength;
-        int pos = 0;
-        while (pos < body.Length)
+        int maxBodyTokens = _embedder.MaxTokenLength - _embedder.GetTokenCount(headingText);
+        if (maxBodyTokens <= 0)
+            yield break; // 見出しだけでオーバー
+        // 1文ずつ追加してトークン数が超えたら分割
+        var sentences = body.Split(new[] { '\n' }, StringSplitOptions.None);
+        var partBuilder = new StringBuilder();
+        foreach (var sentence in sentences)
         {
-            int len = Math.Min(maxBodyLen, body.Length - pos);
-            var part = body.Substring(pos, len);
-            var sb = new StringBuilder();
-            sb.Append(headingBuilder.ToString());
-            sb.Append(part);
-            yield return sb.ToString().Trim();
-            pos += len;
+            if (partBuilder.Length > 0)
+                partBuilder.Append('\n');
+            partBuilder.Append(sentence);
+            string candidate = headingText + partBuilder.ToString();
+            if (_embedder.GetTokenCount(candidate) > _embedder.MaxTokenLength)
+            {
+                // 直前までをチャンクとして出力
+                string part = partBuilder.ToString();
+                int lastNewline = part.LastIndexOf('\n');
+                if (lastNewline > 0)
+                {
+                    string emit = part.Substring(0, lastNewline);
+                    yield return (headingText + emit).Trim();
+                    partBuilder.Clear();
+                    partBuilder.Append(part.Substring(lastNewline + 1));
+                }
+                else
+                {
+                    // 1文でも超える場合は強制分割
+                    yield return (headingText + sentence).Trim();
+                    partBuilder.Clear();
+                }
+            }
+        }
+        if (partBuilder.Length > 0)
+        {
+            yield return (headingText + partBuilder.ToString()).Trim();
         }
     }
 }
