@@ -182,3 +182,33 @@
     この動きの違いは「XXXXXXXXXXX」による分散だけを対象とし、強制分散については自動分散中の状態と同じ（分散を行う）。
 1. 同じ結果になりました。まだ問題が有るようです、修正して下さい。問題が発生したチャンクを見ると、1つのMarkdownの先頭のデータです。特に先頭のデータについて、この問題が起きる可能性を疑ってください。
 1. LLMService.ChatAsync()の「// 3. 18件をcontextとして従来のプロンプトで最終回答」の処理でのInferStreamingの呼び出し結果について、LLMからの応答が異常に短いうちにgenerator.IsDone()がtrueになって処理が終わってしまう場合があります。考えられる原因について、対策を実装してください。
+1. LlmServiceクラスの、max_lengthの値と、入力プロンプトの作り方を、改善する必要があります。現在使用しているモデルはPhi-3-mini-4k-instruct-onnxであるため、最大トークン数（context_length）は4096です。この範囲内で、応答に十分なトークン数を確保できるように、プロンプトを調整する必要があります。応答には2048トークンを確保してください。ChatAsyncメソッドで作成するcontextは、formatを作成した結果が[context_length - 応答のトークン数]未満のトークン数となるようにしてください。このトークン数の算出は、InferStreamingメソッドと同じ方式を使って算出する必要があります。以上の処理で使う数値と、関連する数値（ベクトルDBからの最大取得数や、そこから関連性の高い物を抽出する数など）、動作を見てチューニングするため、フィールドに持つようにしてください。
+1. ※GitHub Copilotが何度か修正してもビルドエラーが続き、結果がループして解決見込みが無かった。そこで、別途ChatGptで調べた結果を以下のように渡したら、解決した。
+
+    「error CS1061: 'Sequences' に 'Count' の定義が含まれておらず」と言ったビルドエラーが続いています。
+    次のような情報をもらいましたが、これで解決できますか？
+
+    🔍 Sequences からトークン数を取得する方法
+    Sequences クラスは、複数のトークンシーケンスを保持する構造です。各シーケンスは ReadOnlySpan<int> としてアクセスできます。以下のコードは、Sequences オブジェクトから各シーケンスのトークン数を取得する方法を示しています。
+
+    ```
+    using Microsoft.ML.OnnxRuntimeGenAI;
+
+    // モデルとトークナイザーの初期化
+    using var model = new Model(modelPath);
+    using var tokenizer = new Tokenizer(model);
+
+    // プロンプトのエンコード
+    string prompt = "<|system|>あなたは親切で知識豊富なアシスタントです。<|end|><|user|>こんにちは！<|end|><|assistant|>";
+    var sequences = tokenizer.Encode(prompt);
+
+    // 各シーケンスのトークン数を取得
+    for (ulong i = 0; i < sequences.NumSequences; i++)
+    {
+        ReadOnlySpan<int> sequence = sequences[i];
+        int tokenCount = sequence.Length;
+        Console.WriteLine($"シーケンス {i} のトークン数: {tokenCount}");
+    }
+    ```
+
+    このコードでは、sequences.NumSequences を使用してシーケンスの総数を取得し、各シーケンスに対して sequences[i] でアクセスしています。ReadOnlySpan<int> 型の sequence から Length プロパティを使用してトークン数を取得できます。
