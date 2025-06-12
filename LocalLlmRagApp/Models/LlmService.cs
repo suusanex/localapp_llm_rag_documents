@@ -17,10 +17,22 @@ public interface ILlmService
 
 public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, ILogger<OnnxLlmService> _logger, IConfiguration _iconfig) : ILlmService
 {
+    // モデル・プロンプト関連パラメータ
+    private readonly int _contextLength = 4096; // Phi-3-mini-4k-instruct-onnx
+    private readonly int _maxResponseTokens = 2048;
+    private readonly int _maxLength = 2048;
+    private readonly int _minLength = 512;
+    private readonly float _temperature = 0.7f;
+    private readonly float _topP = 0.95f;
+    // ベクトルDB関連パラメータ
+    private int _vectorDbTopK = 90;
+    private int _selectGroupSize = 10;
+    private int _selectPerGroup = 2;
+    private int _finalContextChunks = 18;
+
     private Microsoft.ML.OnnxRuntimeGenAI.Tokenizer? _llmTokenizer;
     private bool _initialized = false;
     private Model _model;
-
 
     public void Initialize()
     {
@@ -37,7 +49,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         _llmTokenizer = new Tokenizer(_model);
 
         var connectionString = _iconfig.GetSection("ConnectionStrings")["DefaultConnection"];
-        if (string.IsNullOrEmpty( connectionString))
+        if (string.IsNullOrEmpty(connectionString))
             throw new InvalidOperationException("connectionString is not configured");
 
         _vectorDb.InitializeForReadOnlyAsync(connectionString);
@@ -52,27 +64,54 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
 
         try
         {
-            // 1. ベクトルDBから最大90件取得
+            // 1. ベクトルDBから最大_topK件取得
             var queryVector = GetEmbedding(prompt);
-            var similarChunks = await _vectorDb.SearchAsync(queryVector, topK: 90);
+            var similarChunks = await _vectorDb.SearchAsync(queryVector, topK: _vectorDbTopK);
             var chunkTexts = similarChunks.Select(x => x.text).ToList();
             var selectedChunks = new List<string>();
 
-            // 2. 10件ずつLLMで関連性の高い2件を抽出
-            for (int i = 0; i < chunkTexts.Count; i += 10)
+            // 2. _selectGroupSize件ずつLLMで関連性の高い_selectPerGroup件を抽出
+            for (int i = 0; i < chunkTexts.Count; i += _selectGroupSize)
             {
-                var group = chunkTexts.Skip(i).Take(10).ToList();
+                var group = chunkTexts.Skip(i).Take(_selectGroupSize).ToList();
                 if (group.Count == 0) break;
-                // プロンプトを工夫してLLMに渡す
                 var selectionPrompt = BuildSelectionPrompt(prompt, group);
                 var llmResult = await GetLlmResultAsync(selectionPrompt, cancellationToken);
                 var selected = ParseSelectedChunksFromLlmResult(llmResult, group);
                 selectedChunks.AddRange(selected);
             }
 
-            // 3. 18件をcontextとして従来のプロンプトで最終回答
-            var context = string.Join("\n", selectedChunks);
+            // 3. context_length - maxResponseTokens 未満のトークン数になるようcontextを調整
+            var contextChunks = new List<string>();
+            int contextTokenLimit = _contextLength - _maxResponseTokens;
+            int currentTokens = 0;
+            foreach (var chunk in selectedChunks)
+            {
+                var sequences = _llmTokenizer.Encode(chunk);
+                int tokenCount = sequences.NumSequences > 0 ? sequences[0].Length : 0;
+                if (currentTokens + tokenCount > contextTokenLimit) break;
+                contextChunks.Add(chunk);
+                currentTokens += tokenCount;
+            }
+            var context = string.Join("\n", contextChunks);
             var format = $"<|system|>You are a helpful AI assistant. Use this context to answer: {context}<|end|>\n<|user|>{prompt}<|end|>\n<|assistant|>";
+
+            // format全体のトークン数が contextLength-maxResponseTokens 未満かチェック
+            var sequencesFormat = _llmTokenizer.Encode(format);
+            int totalTokens = sequencesFormat.NumSequences > 0 ? sequencesFormat[0].Length : 0;
+            if (totalTokens > contextTokenLimit)
+            {
+                // contextをさらに削る
+                while (contextChunks.Count > 0)
+                {
+                    sequencesFormat = _llmTokenizer.Encode(format);
+                    totalTokens = sequencesFormat.NumSequences > 0 ? sequencesFormat[0].Length : 0;
+                    if (totalTokens <= contextTokenLimit) break;
+                    contextChunks.RemoveAt(contextChunks.Count - 1);
+                    context = string.Join("\n", contextChunks);
+                    format = $"<|system|>You are a helpful AI assistant. Use this context to answer: {context}<|end|>\n<|user|>{prompt}<|end|>\n<|assistant|>";
+                }
+            }
 
             StringBuilder buf = new();
             await foreach (var messagePart in InferStreaming(format, cancellationToken))
@@ -151,15 +190,10 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         var generatorParams = new GeneratorParams(_model);
         var sequences = _llmTokenizer.Encode(prompt);
 
-        // 対策: max_length, min_length, temperature, top_p を明示的に設定
-        int maxLength = 2048; // 必要に応じてさらに大きく
-        int minLength = 512;  // 応答が短すぎる場合はこの値を調整
-        float temperature = 0.7f; // 多様性
-        float topP = 0.95f;       // nucleus sampling
-        generatorParams.SetSearchOption("max_length", maxLength);
-        generatorParams.SetSearchOption("min_length", minLength);
-        generatorParams.SetSearchOption("temperature", temperature);
-        generatorParams.SetSearchOption("top_p", topP);
+        generatorParams.SetSearchOption("max_length", _maxLength);
+        generatorParams.SetSearchOption("min_length", _minLength);
+        generatorParams.SetSearchOption("temperature", _temperature);
+        generatorParams.SetSearchOption("top_p", _topP);
         generatorParams.TryGraphCaptureWithMaxBatchSize(1);
 
         using var tokenizerStream = _llmTokenizer.CreateStream();
@@ -183,8 +217,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
             }
             yield return part;
         }
-        // 応答が短すぎる場合は警告ログ
-        if (tokenCount < minLength / 2)
+        if (tokenCount < _minLength / 2)
         {
             _logger.LogWarning($"LLM応答が短すぎます (tokenCount={tokenCount})。max_length, min_length, プロンプト長を確認してください。");
         }
