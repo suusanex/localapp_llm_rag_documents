@@ -9,7 +9,7 @@ public class Chunker
 
     public IEnumerable<string> Chunk(string text)
     {
-        var lines = text.Split('\n');
+        var lines = text.Split(Environment.NewLine);
         string? lastH1 = null;
         string? lastH2 = null;
         string? lastH3 = null;
@@ -76,7 +76,7 @@ public class Chunker
 
     private bool IsValidChunk(StringBuilder chunk)
     {
-        var lines = chunk.ToString().Split('\n');
+        var lines = chunk.ToString().Split(Environment.NewLine);
         foreach (var line in lines)
         {
             var trimmed = line.Trim();
@@ -90,7 +90,7 @@ public class Chunker
     private IEnumerable<string> SplitWithHeadings(string chunk, List<string> headings)
     {
         // Œ©o‚µ•”•ª‚ğ’Šo
-        var chunkLines = chunk.Split('\n');
+        var chunkLines = chunk.Split(Environment.NewLine);
         int headingCount = 0;
         var headingBuilder = new StringBuilder();
         foreach (var h in headings)
