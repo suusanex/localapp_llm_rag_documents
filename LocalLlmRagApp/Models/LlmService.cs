@@ -1,4 +1,4 @@
-using LocalLlmRagApp.Data;
+﻿using LocalLlmRagApp.Data;
 using Microsoft.Extensions.Options;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
@@ -52,12 +52,26 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
 
         try
         {
-            // RAG: プロンプトの拡張
+            // 1. ベクトルDBから最大100件取得
             var queryVector = GetEmbedding(prompt);
-            var similarChunks = await _vectorDb.SearchAsync(queryVector, topK: 10);
-            var context = string.Join("\n", similarChunks.Select(x => x.text));
+            var similarChunks = await _vectorDb.SearchAsync(queryVector, topK: 100);
+            var chunkTexts = similarChunks.Select(x => x.text).ToList();
+            var selectedChunks = new List<string>();
 
-            // プロンプトの構築
+            // 2. 10件ずつLLMで関連性の高い2件を抽出
+            for (int i = 0; i < chunkTexts.Count; i += 10)
+            {
+                var group = chunkTexts.Skip(i).Take(10).ToList();
+                if (group.Count == 0) break;
+                // プロンプトを工夫してLLMに渡す
+                var selectionPrompt = BuildSelectionPrompt(prompt, group);
+                var llmResult = await GetLlmResultAsync(selectionPrompt, cancellationToken);
+                var selected = ParseSelectedChunksFromLlmResult(llmResult, group);
+                selectedChunks.AddRange(selected);
+            }
+
+            // 3. 20件をcontextとして従来のプロンプトで最終回答
+            var context = string.Join("\n", selectedChunks);
             var format = $"<|system|>You are a helpful AI assistant. Use this context to answer: {context}<|end|>\n<|user|>{prompt}<|end|>\n<|assistant|>";
 
             StringBuilder buf = new();
@@ -73,6 +87,43 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
             _logger.LogError(ex, "Chat error");
             return $"Error: {ex.Message}";
         }
+    }
+
+    private string BuildSelectionPrompt(string question, List<string> group)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("次の10個のテキストの中から、質問に最も関連性が高いものを2つ選んでください。選んだテキストの番号のみをカンマ区切りで出力してください。\n");
+        sb.AppendLine($"質問: {question}\n");
+        for (int i = 0; i < group.Count; i++)
+        {
+            sb.AppendLine($"[{i}] {group[i].Replace("\n", " ")}");
+        }
+        sb.AppendLine("\n出力例: 3,7");
+        return sb.ToString();
+    }
+
+    private async Task<string> GetLlmResultAsync(string prompt, CancellationToken cancellationToken)
+    {
+        StringBuilder buf = new();
+        await foreach (var messagePart in InferStreaming(prompt, cancellationToken))
+        {
+            buf.Append(messagePart);
+        }
+        return buf.ToString();
+    }
+
+    private List<string> ParseSelectedChunksFromLlmResult(string llmResult, List<string> group)
+    {
+        var result = new List<string>();
+        var line = llmResult.Split('\n').FirstOrDefault(l => l.Trim().Any(char.IsDigit));
+        if (line == null) return result;
+        var nums = line.Split(',').Select(s => s.Trim()).Where(s => int.TryParse(s, out _)).Select(int.Parse);
+        foreach (var idx in nums)
+        {
+            if (idx >= 0 && idx < group.Count)
+                result.Add(group[idx]);
+        }
+        return result;
     }
 
     public async IAsyncEnumerable<string> InferStreaming(string prompt, [EnumeratorCancellation] CancellationToken ct = default)
