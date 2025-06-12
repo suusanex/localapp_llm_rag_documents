@@ -108,7 +108,8 @@ public class Chunker
         {
             bodyBuilder.AppendLine(chunkLines[i]);
         }
-        var body = bodyBuilder.ToString().Trim();
+        // 先頭・末尾の空行を除去
+        var body = string.Join("\n", bodyBuilder.ToString().Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries));
         var headingText = headingBuilder.ToString();
         // 1チャンクとしてトークン数が収まる場合
         string fullChunk = headingText + body;
@@ -122,7 +123,7 @@ public class Chunker
         if (maxBodyTokens <= 0)
             yield break; // 見出しだけでオーバー
         // 1文ずつ追加してトークン数が超えたら分割
-        var sentences = body.Split(new[] { '\n' }, StringSplitOptions.None);
+        var sentences = body.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
         var partBuilder = new StringBuilder();
         foreach (var sentence in sentences)
         {
