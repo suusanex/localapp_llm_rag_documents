@@ -22,8 +22,6 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     private readonly int _maxResponseTokens = 2048;
     private readonly int _maxLength = 4096;
     private readonly int _minLength = 512;
-    private readonly float _temperature = 0.7f;
-    private readonly float _topP = 0.95f;
     // ベクトルDB関連パラメータ
     private int _vectorDbTopK = 90;
     private int _selectGroupSize = 10;
@@ -192,8 +190,6 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
 
         generatorParams.SetSearchOption("max_length", _maxLength);
         generatorParams.SetSearchOption("min_length", _minLength);
-        generatorParams.SetSearchOption("temperature", _temperature);
-        generatorParams.SetSearchOption("top_p", _topP);
         generatorParams.TryGraphCaptureWithMaxBatchSize(1);
 
         using var tokenizerStream = _llmTokenizer.CreateStream();
