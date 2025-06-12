@@ -1,4 +1,4 @@
-﻿using LocalLlmRagApp.Data;
+using LocalLlmRagApp.Data;
 using Microsoft.Extensions.Options;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
@@ -98,22 +98,14 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         while (!generator.IsDone())
         {
             string part;
-            try
+            await Task.Delay(10).ConfigureAwait(false);
+            generator.GenerateNextToken();
+            part = tokenizerStream.Decode(generator.GetSequence(0)[^1]);
+            stringBuilder.Append(part);
+            if (stringBuilder.ToString().Contains("<|end|>")
+                || stringBuilder.ToString().Contains("<|user|>")
+                || stringBuilder.ToString().Contains("<|system|>"))
             {
-                await Task.Delay(10).ConfigureAwait(false);
-                generator.GenerateNextToken();
-                part = tokenizerStream.Decode(generator.GetSequence(0)[^1]);
-                stringBuilder.Append(part);
-                if (stringBuilder.ToString().Contains("<|end|>")
-                    || stringBuilder.ToString().Contains("<|user|>")
-                    || stringBuilder.ToString().Contains("<|system|>"))
-                {
-                    break;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex);
                 break;
             }
 

@@ -16,7 +16,7 @@ public class Embedder
     private EmbedderTokenizer? _tokenizer;
     private readonly IOptions<AppConfig> _config;
     private bool _initialized = false;
-    private const int MaxLength = 128; // モデルの最大長に合わせて調整
+    private const int MaxLength = 512; // モデルの最大長に合わせて調整
 
     public static int GetDimensions(EmbeddingModelType type) => type switch
     {
@@ -48,12 +48,16 @@ public class Embedder
     public float[] Embed(string text)
     {
         if (!_initialized) throw new InvalidOperationException("Embedder is not initialized. Call Initialize() first.");
-        var inputIds = _tokenizer!.Encode(text);
+        var inputIds = _tokenizer!.Encode($"passage:{text}");
         // パディングまたは切り詰め
         var padded = new long[MaxLength];
         var attentionMask = new long[MaxLength];
         int len = Math.Min(inputIds.Length, MaxLength);
         Array.Copy(inputIds, padded, len);
+        if (MaxLength < inputIds.Length)
+        {
+            Debug.WriteLine($"Token Size Over, inputIdsCount={inputIds.Length}");
+        }
         for (int i = 0; i < len; i++) attentionMask[i] = 1;
         var inputTensor = new DenseTensor<long>(padded, new[] { 1, MaxLength });
         var maskTensor = new DenseTensor<long>(attentionMask, new[] { 1, MaxLength });
