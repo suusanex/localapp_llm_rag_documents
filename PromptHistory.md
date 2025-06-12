@@ -149,3 +149,5 @@
     [9] XXXXXXXXXXX
 
     These two texts discuss aspects related to the risk log, with the first one mentioning shared functionalities and the second one about messages displayed in the user interface, which could be part of the risk log's content.
+1. Chunker.Chunk()について、文字列長の上限値800はチューニング対象にするため、変更しやすいように1つのフィールドにまとめてください。
+1. Chunker.Chunk()について、基本的にはMarkdownの見出し単位で分割するが、文字列長の上限を超えた場合はさらに複数に分割する、という仕様です。文字列長の上限を超えた分割を行った場合でも、どの見出しに所属する内容かをチャンク単独で読み取れるようにするために、そのような分割結果の2つ目以降を返す場合には、1つ目と同じ見出しを前に付加するように、変更してください（最大で、見出し1・2・3の全てが付加されることになります）。このため、分割する文字数については、見出しを付加するための文字数を含めて判定する必要があります。
