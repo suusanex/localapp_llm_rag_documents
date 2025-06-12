@@ -126,28 +126,31 @@ public class Chunker
         var partBuilder = new StringBuilder();
         foreach (var sentence in sentences)
         {
-            if (partBuilder.Length > 0)
-                partBuilder.Append('\n');
-            partBuilder.Append(sentence);
-            string candidate = headingText + partBuilder.ToString();
+            // 追加前にトークン数を判定
+            string candidate = headingText + (partBuilder.Length > 0 ? partBuilder.ToString() + "\n" : "") + sentence;
             if (_embedder.GetTokenCount(candidate) > _embedder.MaxTokenLength)
             {
-                // 直前までをチャンクとして出力
-                string part = partBuilder.ToString();
-                int lastNewline = part.LastIndexOf('\n');
-                if (lastNewline > 0)
+                // 追加前のpartBuilderを出力
+                if (partBuilder.Length > 0)
                 {
-                    string emit = part.Substring(0, lastNewline);
-                    yield return (headingText + emit).Trim();
+                    yield return (headingText + partBuilder.ToString()).Trim();
                     partBuilder.Clear();
-                    partBuilder.Append(part.Substring(lastNewline + 1));
+                }
+                // 1文だけで超える場合はその文単体で出力
+                if (_embedder.GetTokenCount(headingText + sentence) > _embedder.MaxTokenLength)
+                {
+                    yield return (headingText + sentence).Trim();
                 }
                 else
                 {
-                    // 1文でも超える場合は強制分割
-                    yield return (headingText + sentence).Trim();
-                    partBuilder.Clear();
+                    partBuilder.Append(sentence);
                 }
+            }
+            else
+            {
+                if (partBuilder.Length > 0)
+                    partBuilder.Append('\n');
+                partBuilder.Append(sentence);
             }
         }
         if (partBuilder.Length > 0)
