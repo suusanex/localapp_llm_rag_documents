@@ -52,9 +52,9 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
 
         try
         {
-            // 1. ベクトルDBから最大100件取得
+            // 1. ベクトルDBから最大90件取得
             var queryVector = GetEmbedding(prompt);
-            var similarChunks = await _vectorDb.SearchAsync(queryVector, topK: 100);
+            var similarChunks = await _vectorDb.SearchAsync(queryVector, topK: 90);
             var chunkTexts = similarChunks.Select(x => x.text).ToList();
             var selectedChunks = new List<string>();
 
@@ -70,7 +70,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
                 selectedChunks.AddRange(selected);
             }
 
-            // 3. 20件をcontextとして従来のプロンプトで最終回答
+            // 3. 18件をcontextとして従来のプロンプトで最終回答
             var context = string.Join("\n", selectedChunks);
             var format = $"<|system|>You are a helpful AI assistant. Use this context to answer: {context}<|end|>\n<|user|>{prompt}<|end|>\n<|assistant|>";
 
