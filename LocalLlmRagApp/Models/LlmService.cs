@@ -21,7 +21,6 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     private readonly int _contextLength = 4096; // Phi-3-mini-4k-instruct-onnx
     private readonly int _maxResponseTokens = 2048;
     private readonly int _maxLength = 4096;
-    private readonly int _minLength = 512;
     // ベクトルDB関連パラメータ
     private int _vectorDbTopK = 90;
     private int _selectGroupSize = 10;
@@ -189,14 +188,12 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         var sequences = _llmTokenizer.Encode(prompt);
 
         generatorParams.SetSearchOption("max_length", _maxLength);
-        generatorParams.SetSearchOption("min_length", _minLength);
         generatorParams.TryGraphCaptureWithMaxBatchSize(1);
 
         using var tokenizerStream = _llmTokenizer.CreateStream();
         using var generator = new Generator(_model, generatorParams);
         generator.AppendTokenSequences(sequences);
         StringBuilder stringBuilder = new();
-        int tokenCount = 0;
         while (!generator.IsDone())
         {
             string part;
@@ -204,7 +201,6 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
             generator.GenerateNextToken();
             part = tokenizerStream.Decode(generator.GetSequence(0)[^1]);
             stringBuilder.Append(part);
-            tokenCount++;
             if (stringBuilder.ToString().Contains("<|end|>")
                 || stringBuilder.ToString().Contains("<|user|>")
                 || stringBuilder.ToString().Contains("<|system|>"))
@@ -212,10 +208,6 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
                 break;
             }
             yield return part;
-        }
-        if (tokenCount < _minLength / 2)
-        {
-            _logger.LogWarning($"LLM応答が短すぎます (tokenCount={tokenCount})。max_length, min_length, プロンプト長を確認してください。");
         }
     }
 
