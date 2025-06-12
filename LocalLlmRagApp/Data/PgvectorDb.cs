@@ -68,7 +68,7 @@ public class PgvectorDb : IVectorDb
         await using var conn = await _dataSource.OpenConnectionAsync();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $@"
-            SELECT text, (embedding <#> @query) AS score
+            SELECT text, (embedding <=> @query) AS score
             FROM {_tableName}
             ORDER BY score ASC
             LIMIT @topK;";
