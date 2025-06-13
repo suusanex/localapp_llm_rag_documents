@@ -207,7 +207,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         var sequences = _llmTokenizer.Encode(prompt);
 
         generatorParams.SetSearchOption("max_length", _maxLength);
-        generatorParams.TryGraphCaptureWithMaxBatchSize(1);
+        // TryGraphCaptureWithMaxBatchSize(1); は非推奨のため削除
 
         using var tokenizerStream = _llmTokenizer.CreateStream();
         using var generator = new Generator(_model, generatorParams);
@@ -271,7 +271,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         generatorParams.SetSearchOption("min_length", 1);
         generatorParams.SetSearchOption("temperature", 0.3f);
         generatorParams.SetSearchOption("top_p", 0.9f);
-        generatorParams.TryGraphCaptureWithMaxBatchSize(1);
+        // TryGraphCaptureWithMaxBatchSize(1); は非推奨のため削除
 
         using var tokenizerStream = _llmTokenizer.CreateStream();
         using var generator = new Generator(_model, generatorParams);
