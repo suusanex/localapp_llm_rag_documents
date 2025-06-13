@@ -71,6 +71,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
             Console.WriteLine("[2/6] キーワード抽出・キーワード検索開始...");
             // 1b. キーワード検索で最大_topK/2件取得
             var keywords = await ExtractKeywordsAsync(prompt, cancellationToken);
+            Console.WriteLine($"質問文から抽出した重要キーワード:{string.Join(",", keywords)}");
             var keywordChunks = await KeywordSearchAsync(keywords, _vectorDbTopK / 2, cancellationToken);
 
             Console.WriteLine("[3/6] ベクトル・キーワード検索結果合成・重複除去...");
