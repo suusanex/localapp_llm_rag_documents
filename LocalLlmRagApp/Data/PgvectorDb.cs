@@ -84,4 +84,36 @@ public class PgvectorDb : IVectorDb
         }
         return results.ToArray();
     }
+
+    public async Task<(string text, float score)[]> SearchByKeywordsAsync(IEnumerable<string> keywords, int topK = 5)
+    {
+        if (keywords == null || !keywords.Any())
+            return Array.Empty<(string text, float score)>();
+    
+        await using var conn = await _dataSource.OpenConnectionAsync();
+        await using var cmd = conn.CreateCommand();
+        // “®“I‚ÉORðŒ‚ð¶¬
+        var conditions = keywords.Select((k, i) => $"text ILIKE @kw{i}").ToArray();
+        cmd.CommandText = $@"
+            SELECT text, 0.0 AS score
+            FROM {_tableName}
+            WHERE {string.Join(" OR ", conditions)}
+            LIMIT @topK;";
+        int idx = 0;
+        foreach (var kw in keywords)
+        {
+            cmd.Parameters.AddWithValue($"@kw{idx}", $"%{kw}%");
+            idx++;
+        }
+        cmd.Parameters.AddWithValue("@topK", topK);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        var results = new List<(string text, float score)>();
+        while (await reader.ReadAsync())
+        {
+            var text = reader.GetString(0);
+            var score = reader.GetFloat(1);
+            results.Add((text, score));
+        }
+        return results.ToArray();
+    }
 }
