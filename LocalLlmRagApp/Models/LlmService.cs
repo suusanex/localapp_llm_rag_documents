@@ -61,10 +61,18 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
 
         try
         {
-            // 1. ベクトルDBから最大_topK件取得
+            // 1. ベクトルDBから最大_topK/2件取得（ベクトル検索）
             var queryVector = GetEmbedding(prompt);
-            var similarChunks = await _vectorDb.SearchAsync(queryVector, topK: _vectorDbTopK);
+            var similarChunks = await _vectorDb.SearchAsync(queryVector, topK: _vectorDbTopK / 2);
             var chunkTexts = similarChunks.Select(x => x.text).ToList();
+
+            // 1b. キーワード検索で最大_topK/2件取得
+            var keywords = await ExtractKeywordsAsync(prompt, cancellationToken);
+            var keywordChunks = await KeywordSearchAsync(keywords, _vectorDbTopK / 2, cancellationToken);
+
+            // 1c. ベクトル検索とキーワード検索の結果を合成（重複除去）
+            chunkTexts.AddRange(keywordChunks);
+            chunkTexts = chunkTexts.Distinct().ToList();
             var selectedChunks = new List<string>();
 
             // 2. _selectGroupSize件ずつLLMで関連性の高い_selectPerGroup件を抽出
@@ -216,5 +224,22 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         var embedder = new Embedder(_config);
         embedder.Initialize();
         return embedder.Embed(text);
+    }
+
+    // 質問文からキーワードを抽出する（LLM利用）
+    private async Task<List<string>> ExtractKeywordsAsync(string question, CancellationToken cancellationToken)
+    {
+        // 日本語・英語両対応の抽出プロンプト
+        var prompt = $"次の質問文から、意味のあるキーワード（名詞や重要語句）だけをすべてカンマ区切りで抽出してください。接続詞や助詞、一般的な単語は除外してください。キーワードのみを1行でカンマ区切りで出力してください。\n\n質問文: {question}\n\n出力例: LLM, チャット, ベクトルDB";
+        var result = await GetLlmResultAsync(prompt, cancellationToken);
+        // カンマ区切りで分割
+        return result.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
+    }
+
+    // PgvectorDbのSQLキーワード検索を利用するよう修正
+    private async Task<List<string>> KeywordSearchAsync(List<string> keywords, int topK, CancellationToken cancellationToken)
+    {
+        var results = await _vectorDb.SearchByKeywordsAsync(keywords, topK);
+        return results.Select(x => x.text).ToList();
     }
 }
