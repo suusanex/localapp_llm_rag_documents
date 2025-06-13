@@ -226,14 +226,59 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         return embedder.Embed(text);
     }
 
-    // 質問文からキーワードを抽出する（LLM利用）
+    // 質問文からキーワードを抽出する（LLM利用、プロンプト簡素化）
     private async Task<List<string>> ExtractKeywordsAsync(string question, CancellationToken cancellationToken)
     {
-        // 日本語・英語両対応の抽出プロンプト
-        var prompt = $"次の質問文から、意味のあるキーワード（名詞や重要語句）だけをすべてカンマ区切りで抽出してください。接続詞や助詞、一般的な単語は除外してください。キーワードのみを1行でカンマ区切りで出力してください。\n\n質問文: {question}\n\n出力例: LLM, チャット, ベクトルDB";
-        var result = await GetLlmResultAsync(prompt, cancellationToken);
-        // カンマ区切りで分割
+        var prompt = "次の文から重要なキーワード（名詞や固有名詞など）をカンマ区切りで1行だけ出力してください。説明や余計な語句は不要です。\n\n質問文: " + question + "\n\n出力例: XXXXXXXXXXX, チェック, ログ";
+        var result = await GetLlmResultAsyncForKeywords(prompt, cancellationToken);
         return result.Split(',').Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
+    }
+
+    // キーワード抽出用に短文・低温度で推論
+    private async Task<string> GetLlmResultAsyncForKeywords(string prompt, CancellationToken cancellationToken)
+    {
+        StringBuilder buf = new();
+        await foreach (var messagePart in InferStreamingForKeywords(prompt, cancellationToken))
+        {
+            buf.Append(messagePart);
+        }
+        return buf.ToString();
+    }
+
+    // InferStreamingのパラメータを短文・低温度に（max_length=プロンプト長+応答分, temperature緩和）
+    private async IAsyncEnumerable<string> InferStreamingForKeywords(string prompt, [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        if (_model == null || _llmTokenizer == null)
+            throw new InvalidOperationException("Model is not ready");
+
+        var generatorParams = new GeneratorParams(_model);
+        var sequences = _llmTokenizer.Encode(prompt);
+        int promptTokens = sequences.NumSequences > 0 ? sequences[0].Length : 0;
+        int responseTokens = 32; // 応答用トークン数
+        int maxLength = promptTokens + responseTokens;
+        generatorParams.SetSearchOption("max_length", maxLength);
+        generatorParams.SetSearchOption("min_length", 1);
+        generatorParams.SetSearchOption("temperature", 0.3f);
+        generatorParams.SetSearchOption("top_p", 0.9f);
+        generatorParams.TryGraphCaptureWithMaxBatchSize(1);
+
+        using var tokenizerStream = _llmTokenizer.CreateStream();
+        using var generator = new Generator(_model, generatorParams);
+        generator.AppendTokenSequences(sequences);
+        StringBuilder stringBuilder = new();
+        while (!generator.IsDone())
+        {
+            string part;
+            await Task.Delay(10).ConfigureAwait(false);
+            generator.GenerateNextToken();
+            part = tokenizerStream.Decode(generator.GetSequence(0)[^1]);
+            stringBuilder.Append(part);
+            if (stringBuilder.ToString().Contains("\n") || stringBuilder.Length > 128)
+            {
+                break;
+            }
+            yield return part;
+        }
     }
 
     // PgvectorDbのSQLキーワード検索を利用するよう修正
