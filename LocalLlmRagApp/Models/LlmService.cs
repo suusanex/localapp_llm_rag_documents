@@ -1,4 +1,5 @@
-﻿using LocalLlmRagApp.Data;
+﻿using System;
+using LocalLlmRagApp.Data;
 using Microsoft.Extensions.Options;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
@@ -61,31 +62,39 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
 
         try
         {
+            Console.WriteLine("[1/6] ベクトルDB検索開始...");
             // 1. ベクトルDBから最大_topK/2件取得（ベクトル検索）
             var queryVector = GetEmbedding(prompt);
             var similarChunks = await _vectorDb.SearchAsync(queryVector, topK: _vectorDbTopK / 2);
             var chunkTexts = similarChunks.Select(x => x.text).ToList();
 
+            Console.WriteLine("[2/6] キーワード抽出・キーワード検索開始...");
             // 1b. キーワード検索で最大_topK/2件取得
             var keywords = await ExtractKeywordsAsync(prompt, cancellationToken);
             var keywordChunks = await KeywordSearchAsync(keywords, _vectorDbTopK / 2, cancellationToken);
 
+            Console.WriteLine("[3/6] ベクトル・キーワード検索結果合成・重複除去...");
             // 1c. ベクトル検索とキーワード検索の結果を合成（重複除去）
             chunkTexts.AddRange(keywordChunks);
             chunkTexts = chunkTexts.Distinct().ToList();
             var selectedChunks = new List<string>();
 
+            Console.WriteLine($"[4/6] LLM選択処理開始...（{chunkTexts.Count}件を{_selectGroupSize}件ずつ処理）");
             // 2. _selectGroupSize件ずつLLMで関連性の高い_selectPerGroup件を抽出
+            int groupCount = (chunkTexts.Count + _selectGroupSize - 1) / _selectGroupSize;
             for (int i = 0; i < chunkTexts.Count; i += _selectGroupSize)
             {
+                int groupIndex = (i / _selectGroupSize) + 1;
                 var group = chunkTexts.Skip(i).Take(_selectGroupSize).ToList();
                 if (group.Count == 0) break;
+                Console.WriteLine($"  LLM選択 {groupIndex}/{groupCount} ...");
                 var selectionPrompt = BuildSelectionPrompt(prompt, group);
                 var llmResult = await GetLlmResultAsync(selectionPrompt, cancellationToken);
                 var selected = ParseSelectedChunksFromLlmResult(llmResult, group);
                 selectedChunks.AddRange(selected);
             }
 
+            Console.WriteLine("[5/6] コンテキストトークン長調整...");
             // 3. context_length - maxResponseTokens 未満のトークン数になるようcontextを調整
             var contextChunks = new List<string>();
             int contextTokenLimit = _contextLength - _maxResponseTokens;
@@ -118,12 +127,14 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
                 }
             }
 
+            Console.WriteLine("[6/6] LLM最終推論開始...");
             StringBuilder buf = new();
             await foreach (var messagePart in InferStreaming(format, cancellationToken))
             {
                 buf.Append(messagePart);
             }
 
+            Console.WriteLine("[完了] LLM応答生成完了");
             return buf.ToString();
         }
         catch (Exception ex)
