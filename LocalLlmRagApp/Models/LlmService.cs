@@ -148,24 +148,68 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     private string BuildSelectionPrompt(string question, List<string> group)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("次の10個のテキストの中から、質問に最も関連性が高いものを2つ選んでください。選んだテキストの番号のみを1行でカンマ区切りで出力してください。番号以外は一切出力しないでください。\n");
-        sb.AppendLine($"質問: {question}\n");
+        sb.AppendLine("次のテキスト群から、質問に最も関連性が高いものを2つだけ選び、その番号をカンマ区切りで1行だけ出力してください。必ず最初に番号だけを出力し、その後は何も出力しないこと。番号以外は一切出力しないこと。");
+        sb.AppendLine($"質問: {question}");
         for (int i = 0; i < group.Count; i++)
         {
             sb.AppendLine($"[{i}] {group[i].Replace("\n", " ")}");
         }
-        sb.AppendLine("\n出力例: 3,7");
+        sb.AppendLine("3,7"); // 出力例のみ
         return sb.ToString();
     }
 
     private async Task<string> GetLlmResultAsync(string prompt, CancellationToken cancellationToken)
     {
         StringBuilder buf = new();
-        await foreach (var messagePart in InferStreaming(prompt, cancellationToken))
+        await foreach (var messagePart in InferStreamingForSelection(prompt, cancellationToken))
         {
             buf.Append(messagePart);
         }
-        return buf.ToString();
+        // 応答全体から「カンマ区切りで2つ以上の数字が並ぶ行」を抽出
+        var regex = new System.Text.RegularExpressions.Regex(@"\b\d+\s*,\s*\d+\b");
+        foreach (var line in buf.ToString().Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (regex.IsMatch(trimmed))
+                return regex.Match(trimmed).Value;
+        }
+        // それ以外は最初に数字が2つ以上含まれる行を返す
+        foreach (var line in buf.ToString().Split('\n'))
+        {
+            var nums = line.Split(',').Select(s => s.Trim()).Where(s => int.TryParse(s, out _)).ToList();
+            if (nums.Count >= 2)
+                return string.Join(",", nums.Take(2));
+        }
+        // それでもなければ空文字
+        return string.Empty;
+    }
+
+    private async IAsyncEnumerable<string> InferStreamingForSelection(string prompt, [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        if (_model == null || _llmTokenizer == null)
+            throw new InvalidOperationException("Model is not ready");
+
+        var generatorParams = new GeneratorParams(_model);
+        var sequences = _llmTokenizer.Encode(prompt);
+        int promptTokens = sequences.NumSequences > 0 ? sequences[0].Length : 0;
+        int responseTokens = 64; // さらに余裕を持たせる
+        int maxLength = promptTokens + responseTokens;
+        generatorParams.SetSearchOption("max_length", maxLength);
+        generatorParams.SetSearchOption("min_length", 1);
+        generatorParams.SetSearchOption("temperature", 0.25f);
+        generatorParams.SetSearchOption("top_p", 0.85f);
+
+        using var tokenizerStream = _llmTokenizer.CreateStream();
+        using var generator = new Generator(_model, generatorParams);
+        generator.AppendTokenSequences(sequences);
+        while (!generator.IsDone())
+        {
+            string part;
+            await Task.Delay(10).ConfigureAwait(false);
+            generator.GenerateNextToken();
+            part = tokenizerStream.Decode(generator.GetSequence(0)[^1]);
+            yield return part;
+        }
     }
 
     private List<string> ParseSelectedChunksFromLlmResult(string llmResult, List<string> group)
