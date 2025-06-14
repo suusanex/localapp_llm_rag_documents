@@ -149,7 +149,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     {
         var sessionId = Guid.NewGuid();
         var sb = new StringBuilder();
-        sb.AppendLine($"<|system|> あなたは与えられたテキスト群から、質問に最も関連性が高いものを2つだけ選び、# 回答 の見出しの下にカンマ区切りの数字2つのみを1行で出力してください。# 回答以外の見出しや説明、理由、例示、他の出力は禁止です。\n例:\n# 回答\n1,3\n[session:{sessionId}] <|end|>");
+        sb.AppendLine($"<|system|> このメッセージは制御用です。session={sessionId} あなたは与えられたテキスト群から、質問に最も関連性が高いものを2つだけ選び、# 回答 の見出しの下にカンマ区切りの数字2つのみを1行で出力してください。# 回答以外の見出しや説明、理由、例示、他の出力は禁止です。\n例:\n# 回答\n1,3 <|end|>");
         sb.AppendLine("<|user|>");
         sb.AppendLine($"## 質問\n{question}\n");
         sb.AppendLine("## テキスト群");
@@ -167,10 +167,9 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         var sessionId = Guid.NewGuid();
         for (int retry = 0; retry < maxRetry; retry++)
         {
-            var retryTag = retry > 0 ? $" [retry:{retry}]" : string.Empty;
-            // retry情報もsystemメッセージ内に含める
-            var promptWithRetry = prompt.Replace("<|system|>", $"<|system|>")
-                .Replace("<|end|>", $"[session:{sessionId}]{retryTag} <|end|>");
+            var retryTag = retry > 0 ? $" retry={retry}" : string.Empty;
+            // retry情報もsystemメッセージ先頭に自然言語で埋め込む
+            var promptWithRetry = prompt.Replace("<|system|>", $"<|system|> このメッセージは制御用です。session={sessionId}{retryTag} ");
             StringBuilder buf = new();
             await foreach (var messagePart in InferStreamingForSelection(promptWithRetry, cancellationToken))
             {
