@@ -147,8 +147,9 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
 
     private string BuildSelectionPrompt(string question, List<string> group)
     {
+        var sessionId = Guid.NewGuid();
         var sb = new StringBuilder();
-        sb.AppendLine("<|system|> あなたは与えられたテキスト群から、質問に最も関連性が高いものを2つだけ選び、# 回答 の見出しの下にカンマ区切りの数字2つのみを1行で出力してください。# 回答以外の見出しや説明、理由、例示、他の出力は禁止です。\n例:\n# 回答\n1,3 <|end|>");
+        sb.AppendLine($"<|system|> あなたは与えられたテキスト群から、質問に最も関連性が高いものを2つだけ選び、# 回答 の見出しの下にカンマ区切りの数字2つのみを1行で出力してください。# 回答以外の見出しや説明、理由、例示、他の出力は禁止です。\n例:\n# 回答\n1,3\n[session:{sessionId}] <|end|>");
         sb.AppendLine("<|user|>");
         sb.AppendLine($"## 質問\n{question}\n");
         sb.AppendLine("## テキスト群");
@@ -157,17 +158,21 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
             sb.AppendLine($"[{i}] {group[i].Replace("\n", " ")}");
         }
         sb.AppendLine("<|end|>");
-        sb.AppendLine($"# session: {Guid.NewGuid()}");
         return sb.ToString();
     }
 
     private async Task<string> GetLlmResultAsync(string prompt, CancellationToken cancellationToken)
     {
         const int maxRetry = 3;
+        var sessionId = Guid.NewGuid();
         for (int retry = 0; retry < maxRetry; retry++)
         {
+            var retryTag = retry > 0 ? $" [retry:{retry}]" : string.Empty;
+            // retry情報もsystemメッセージ内に含める
+            var promptWithRetry = prompt.Replace("<|system|>", $"<|system|>")
+                .Replace("<|end|>", $"[session:{sessionId}]{retryTag} <|end|>");
             StringBuilder buf = new();
-            await foreach (var messagePart in InferStreamingForSelection(prompt, cancellationToken))
+            await foreach (var messagePart in InferStreamingForSelection(promptWithRetry, cancellationToken))
             {
                 buf.Append(messagePart);
             }
@@ -184,8 +189,6 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
                 if (nums.Count >= 2)
                     return string.Join(",", nums.Take(2));
             }
-            // リトライ時はプロンプト末尾に乱数を付与して変化させる
-            prompt += $" # retry:{Guid.NewGuid()}";
         }
         return string.Empty;
     }
