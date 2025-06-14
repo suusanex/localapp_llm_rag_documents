@@ -148,7 +148,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     private string BuildSelectionPrompt(string question, List<string> group)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("<|system|> あなたは与えられたテキスト群から、質問に最も関連性が高いものを2つだけ選び、カンマ区切りの数字2つのみを1行で出力してください。説明や理由、他の出力は禁止です。\n例: 1,3 <|end|>");
+        sb.AppendLine("<|system|> あなたは与えられたテキスト群から、質問に最も関連性が高いものを2つだけ選び、# 回答 の見出しの下にカンマ区切りの数字2つのみを1行で出力してください。# 回答以外の見出しや説明、理由、例示、他の出力は禁止です。\n例:\n# 回答\n1,3 <|end|>");
         sb.AppendLine("<|user|>");
         sb.AppendLine($"## 質問\n{question}\n");
         sb.AppendLine("## テキスト群");

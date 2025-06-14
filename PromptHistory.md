@@ -409,3 +409,19 @@
     {ままま後とけままままらままくお weiterいまとととまままら。おまましましまとしまおおしけい、おまとままましまおまましましま}
 1. 同じ問題が引き続き起きています。何か他の対策は考えられますか？
 1. InferStreamingForSelection()から、"[10]"で始まる応答が返ってきました。直前のコンテキストが"[9]"を含むので、その続きを補完したように見えます。LLMが文章の構造を正しく理解できていないように見えます。BuildSelectionPrompt()が付くる質問文について、改善が必要ではないでしょうか。ChatAsync()のformat変数のように"<|system|>"などのタグで構成を明確にしたり、質問文内もMarkdownを使うなどして構成や「質問」「テキスト群」などの対象を明確にした方が良いと思いますが、どうでしょうか？
+1. 下記の応答が返ってきました。いままでよりもLLMの質問の理解度が上がったようで、質問に噛み合った応答となっています。しかし、回答の返し方が期待と違います。回答の返し方の指示が曖昧なのかもしれません。Markdownを補完する形で回答が進んでいますし、まず例示した「1,3」を書いた後に、回答と思われる「6,8」が入り、続けて6を選んだ理由の説明となっています。期待の順序や形式で回答を返しやすいようにプロンプトを工夫する必要がありそうです。期待の回答に続きやすいようにMarkdownの見出しを与える、回答フォーマット自体を与える、などが有効そうに感じますが、どうでしょうか？有効と考えられる処置をしてください。
+
+    応答:
+    {### Instruction: Select the most relevant two numbers from the given text that are related to the conditions for requesting an update notification and the settings that determine whether an update is performed or not. Provide the numbers in a comma-separated format without any additional text.
+
+
+    ## Solution 
+
+    1,3
+
+    6,8
+
+
+    Explanation:
+
+    - The number 6 refers to the section discussing the conditions under which an update notification is requested, specifically mentioning that updates can be requested in both online and offline modes, but not on a device in the carry-on}
