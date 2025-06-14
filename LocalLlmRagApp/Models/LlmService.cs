@@ -148,39 +148,43 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     private string BuildSelectionPrompt(string question, List<string> group)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("次のテキスト群から、質問に最も関連性が高いものを2つだけ選び、その番号をカンマ区切りで1行だけ出力してください。必ず最初に番号だけを出力し、その後は何も出力しないこと。番号以外は一切出力しないこと。");
+        sb.AppendLine("次のテキスト群から、質問に最も関連性が高いものを2つだけ選び、最初の1行だけカンマ区切りの数字2つのみ出力してください。説明や理由は一切不要です。");
         sb.AppendLine($"質問: {question}");
         for (int i = 0; i < group.Count; i++)
         {
             sb.AppendLine($"[{i}] {group[i].Replace("\n", " ")}");
         }
-        sb.AppendLine("3,7"); // 出力例のみ
+        sb.AppendLine("例: 1,3");
+        sb.AppendLine($"# session: {Guid.NewGuid()}");
         return sb.ToString();
     }
 
     private async Task<string> GetLlmResultAsync(string prompt, CancellationToken cancellationToken)
     {
-        StringBuilder buf = new();
-        await foreach (var messagePart in InferStreamingForSelection(prompt, cancellationToken))
+        const int maxRetry = 3;
+        for (int retry = 0; retry < maxRetry; retry++)
         {
-            buf.Append(messagePart);
+            StringBuilder buf = new();
+            await foreach (var messagePart in InferStreamingForSelection(prompt, cancellationToken))
+            {
+                buf.Append(messagePart);
+            }
+            var regex = new System.Text.RegularExpressions.Regex(@"\b\d+\s*,\s*\d+\b");
+            foreach (var line in buf.ToString().Split('\n'))
+            {
+                var trimmed = line.Trim();
+                if (regex.IsMatch(trimmed))
+                    return regex.Match(trimmed).Value;
+            }
+            foreach (var line in buf.ToString().Split('\n'))
+            {
+                var nums = line.Split(',').Select(s => s.Trim()).Where(s => int.TryParse(s, out _)).ToList();
+                if (nums.Count >= 2)
+                    return string.Join(",", nums.Take(2));
+            }
+            // リトライ時はプロンプト末尾に乱数を付与して変化させる
+            prompt += $" # retry:{Guid.NewGuid()}";
         }
-        // 応答全体から「カンマ区切りで2つ以上の数字が並ぶ行」を抽出
-        var regex = new System.Text.RegularExpressions.Regex(@"\b\d+\s*,\s*\d+\b");
-        foreach (var line in buf.ToString().Split('\n'))
-        {
-            var trimmed = line.Trim();
-            if (regex.IsMatch(trimmed))
-                return regex.Match(trimmed).Value;
-        }
-        // それ以外は最初に数字が2つ以上含まれる行を返す
-        foreach (var line in buf.ToString().Split('\n'))
-        {
-            var nums = line.Split(',').Select(s => s.Trim()).Where(s => int.TryParse(s, out _)).ToList();
-            if (nums.Count >= 2)
-                return string.Join(",", nums.Take(2));
-        }
-        // それでもなければ空文字
         return string.Empty;
     }
 
@@ -192,12 +196,12 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         var generatorParams = new GeneratorParams(_model);
         var sequences = _llmTokenizer.Encode(prompt);
         int promptTokens = sequences.NumSequences > 0 ? sequences[0].Length : 0;
-        int responseTokens = 64; // さらに余裕を持たせる
+        int responseTokens = 128; // さらに余裕を持たせる
         int maxLength = promptTokens + responseTokens;
         generatorParams.SetSearchOption("max_length", maxLength);
         generatorParams.SetSearchOption("min_length", 1);
-        generatorParams.SetSearchOption("temperature", 0.25f);
-        generatorParams.SetSearchOption("top_p", 0.85f);
+        generatorParams.SetSearchOption("temperature", 0.05f);
+        generatorParams.SetSearchOption("top_p", 0.7f);
 
         using var tokenizerStream = _llmTokenizer.CreateStream();
         using var generator = new Generator(_model, generatorParams);

@@ -403,3 +403,8 @@
     {===
 
     solution: The task requires selecting the two lines from the given text that are most relevant to the question about the conditions for requesting an update}
+1. InferStreamingForSelection()について、最初の数回は期待通りの応答が返ってきていますが、4回目あたりから例のような異常な応答が返ってきます。呼び出し回数に依存しているのならばLLMのリセットのような処理が必要なのか、もしくは入力内容に依存しているのならプロンプトやパラメータの調整が必要かと思います。この問題を修正できますか？
+
+    例:
+    {ままま後とけままままらままくお weiterいまとととまままら。おまましましまとしまおおしけい、おまとままましまおまましましま}
+1. 同じ問題が引き続き起きています。何か他の対策は考えられますか？
