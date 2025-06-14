@@ -148,13 +148,15 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     private string BuildSelectionPrompt(string question, List<string> group)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("次のテキスト群から、質問に最も関連性が高いものを2つだけ選び、最初の1行だけカンマ区切りの数字2つのみ出力してください。説明や理由は一切不要です。");
-        sb.AppendLine($"質問: {question}");
+        sb.AppendLine("<|system|> あなたは与えられたテキスト群から、質問に最も関連性が高いものを2つだけ選び、カンマ区切りの数字2つのみを1行で出力してください。説明や理由、他の出力は禁止です。\n例: 1,3 <|end|>");
+        sb.AppendLine("<|user|>");
+        sb.AppendLine($"## 質問\n{question}\n");
+        sb.AppendLine("## テキスト群");
         for (int i = 0; i < group.Count; i++)
         {
             sb.AppendLine($"[{i}] {group[i].Replace("\n", " ")}");
         }
-        sb.AppendLine("例: 1,3");
+        sb.AppendLine("<|end|>");
         sb.AppendLine($"# session: {Guid.NewGuid()}");
         return sb.ToString();
     }
