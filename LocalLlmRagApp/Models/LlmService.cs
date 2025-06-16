@@ -109,7 +109,11 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
                 currentTokens += tokenCount;
             }
             var context = string.Join("\n", contextChunks);
-            var format = $"<|system|>You are a helpful AI assistant. Use this context to answer: {context}<|end|>\n<|user|>{prompt}<|end|>\n<|assistant|>";
+            var format =
+                "<|system|>あなたは親切なアシスタントです。以下のコンテキスト情報を基に、ユーザーの質問に正確かつ簡潔に回答してください。<|end|>\n" +
+                "<|context|>\n" + context + "\n<|end|>\n" +
+                "<|user|>\n" + prompt + "\n<|end|>\n" +
+                "<|assistant|>";
 
             // format全体のトークン数が contextLength-maxResponseTokens 未満かチェック
             var sequencesFormat = _llmTokenizer.Encode(format);
@@ -124,7 +128,11 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
                     if (totalTokens <= contextTokenLimit) break;
                     contextChunks.RemoveAt(contextChunks.Count - 1);
                     context = string.Join("\n", contextChunks);
-                    format = $"<|system|>You are a helpful AI assistant. Use this context to answer: {context}<|end|>\n<|user|>{prompt}<|end|>\n<|assistant|>";
+                    format =
+                        "<|system|>あなたは親切なアシスタントです。以下のコンテキスト情報を基に、ユーザーの質問に正確かつ簡潔に回答してください。<|end|>\n" +
+                        "<|context|>\n" + context + "\n<|end|>\n" +
+                        "<|user|>\n" + prompt + "\n<|end|>\n" +
+                        "<|assistant|>";
                 }
             }
 
