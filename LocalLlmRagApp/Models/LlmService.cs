@@ -157,6 +157,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
             sb.AppendLine($"[{i}] {group[i].Replace("\n", " ")}");
         }
         sb.AppendLine("<|end|>");
+        sb.AppendLine("<|assistant|>");
         return sb.ToString();
     }
 
