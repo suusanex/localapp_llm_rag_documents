@@ -148,7 +148,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     private string BuildSelectionPrompt(string question, List<string> group)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("<|system|> あなたは与えられたテキスト群から、質問に最も関連性が高いものを2つだけ選び、# 回答 の見出しの下にカンマ区切りの数字2つのみを1行で出力してください。# 回答以外の見出しや説明、理由、例示、他の出力は禁止です。\n\n【記載フォーマット例】\n# 回答\n0,2\n# 回答\n1,3\n# 回答\n2,4\n\n※上記はあくまで記載フォーマットの例です。実際の回答はテキスト群の内容に基づいて選んでください。<|end|>");
+        sb.AppendLine("<|system|> あなたは与えられたテキスト群から、質問に最も関連性が高いものを2つだけ選びます。以下のルールに厳密に従ってください：\n\n・出力は「# 回答」という見出しの下に、選んだテキストの番号（0〜9）を **カンマ区切りで2つだけ**、1行で記述してください。\n・選んだ理由や説明、その他の出力は禁止です。\n・「# 回答」という見出しは必ず1回だけ使ってください。\n\n（以下は形式の参考例であり、出力にコピーしてはいけません）\n※例1: # 回答\\n0,2\n※例2: # 回答\\n1,3\n\n--- ここからがタスクです ---");
         sb.AppendLine("<|user|>");
         sb.AppendLine($"## 質問\n{question}\n");
         sb.AppendLine("## テキスト群");
@@ -200,8 +200,8 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         int maxLength = promptTokens + responseTokens;
         generatorParams.SetSearchOption("max_length", maxLength);
         generatorParams.SetSearchOption("min_length", 1);
-        generatorParams.SetSearchOption("temperature", 0.3f); // 多様性を高める
-        generatorParams.SetSearchOption("top_p", 0.9f); // 多様性を高める
+        generatorParams.SetSearchOption("temperature", 0.5f); // 柔軟性を高める
+        generatorParams.SetSearchOption("top_p", 0.95f); // 柔軟性を高める
 
         using var tokenizerStream = _llmTokenizer.CreateStream();
         using var generator = new Generator(_model, generatorParams);
