@@ -110,7 +110,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
             }
             var context = string.Join("\n", contextChunks);
             var format =
-                "<|system|>あなたは親切なアシスタントです。以下のコンテキスト情報を基に、ユーザーの質問に正確かつ簡潔に回答してください。<|end|>\n" +
+                "<|system|>あなたは親切なアシスタントです。以下のコンテキスト情報を基に、ユーザーの質問に正確に回答してください。<|end|>\n" +
                 "<|context|>\n" + context + "\n<|end|>\n" +
                 "<|user|>\n" + prompt + "\n<|end|>\n" +
                 "<|assistant|>";
@@ -129,7 +129,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
                     contextChunks.RemoveAt(contextChunks.Count - 1);
                     context = string.Join("\n", contextChunks);
                     format =
-                        "<|system|>あなたは親切なアシスタントです。以下のコンテキスト情報を基に、ユーザーの質問に正確かつ簡潔に回答してください。<|end|>\n" +
+                        "<|system|>あなたは親切なアシスタントです。以下のコンテキスト情報を基に、ユーザーの質問に正確に回答してください。<|end|>\n" +
                         "<|context|>\n" + context + "\n<|end|>\n" +
                         "<|user|>\n" + prompt + "\n<|end|>\n" +
                         "<|assistant|>";
