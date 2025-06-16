@@ -149,6 +149,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     {
         var sb = new StringBuilder();
         sb.AppendLine("<|system|> あなたは与えられたテキスト群から、質問に最も関連性が高いものを2つだけ選びます。以下のルールに厳密に従ってください：\n\n・出力は「# 回答」という見出しの下に、選んだテキストの番号（0〜9）を **カンマ区切りで2つだけ**、1行で記述してください。\n・選んだ理由や説明、その他の出力は禁止です。\n・「# 回答」という見出しは必ず1回だけ使ってください。\n\n（以下は形式の参考例であり、出力にコピーしてはいけません）\n※例1: # 回答\\n0,2\n※例2: # 回答\\n1,3\n\n--- ここからがタスクです ---");
+        sb.AppendLine("<|end|>");
         sb.AppendLine("<|user|>");
         sb.AppendLine($"## 質問\n{question}\n");
         sb.AppendLine("## テキスト群");
