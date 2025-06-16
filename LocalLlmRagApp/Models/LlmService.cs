@@ -148,7 +148,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     private string BuildSelectionPrompt(string question, List<string> group)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("<|system|> あなたは与えられたテキスト群から、質問に最も関連性が高いものを2つだけ選び、# 回答 の見出しの下にカンマ区切りの数字2つのみを1行で出力してください。# 回答以外の見出しや説明、理由、例示、他の出力は禁止です。\n例:\n# 回答\n1,3 <|end|>");
+        sb.AppendLine("<|system|> あなたは与えられたテキスト群から、質問に最も関連性が高いものを2つだけ選び、# 回答 の見出しの下にカンマ区切りの数字2つのみを1行で出力してください。# 回答以外の見出しや説明、理由、例示、他の出力は禁止です。\n\n【記載フォーマット例】\n# 回答\n0,2\n# 回答\n1,3\n# 回答\n2,4\n\n※上記はあくまで記載フォーマットの例です。実際の回答はテキスト群の内容に基づいて選んでください。<|end|>");
         sb.AppendLine("<|user|>");
         sb.AppendLine($"## 質問\n{question}\n");
         sb.AppendLine("## テキスト群");
@@ -200,8 +200,8 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         int maxLength = promptTokens + responseTokens;
         generatorParams.SetSearchOption("max_length", maxLength);
         generatorParams.SetSearchOption("min_length", 1);
-        generatorParams.SetSearchOption("temperature", 0.05f);
-        generatorParams.SetSearchOption("top_p", 0.7f);
+        generatorParams.SetSearchOption("temperature", 0.3f); // 多様性を高める
+        generatorParams.SetSearchOption("top_p", 0.9f); // 多様性を高める
 
         using var tokenizerStream = _llmTokenizer.CreateStream();
         using var generator = new Generator(_model, generatorParams);
