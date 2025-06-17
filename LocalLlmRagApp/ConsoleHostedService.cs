@@ -49,7 +49,16 @@ public class ConsoleHostedService(ILogger<ConsoleHostedService> _Logger, IHostAp
                 var markdown = new MarkdownFiles();
                 var embedder = new Embedder(_Options);
                 embedder.Initialize();
-                var chunker = new Chunker(embedder);
+                // LLMサービスの初期化（OnnxLlmServiceの場合のみ）
+                if (_llmService is OnnxLlmService onnx)
+                {
+                    onnx.Initialize();
+                }
+                // DIからChunkerを取得する場合は、下記のように修正
+                // var chunker = serviceProvider.GetRequiredService<Chunker>();
+                // ただし、EmbedderやILlmServiceの状態管理に注意
+                // ここでは明示的にEmbedder/ILlmServiceを渡す形で修正
+                var chunker = new Chunker(embedder, _llmService);
                 // ConnectionStringをUserSecretsから取得
                 var connectionString = _config.GetSection("ConnectionStrings")["DefaultConnection"];
                 var vectorDimensions = Embedder.GetDimensions(EmbeddingModelType.IntfloatMultilingualE5Base);

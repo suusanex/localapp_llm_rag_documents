@@ -1,15 +1,22 @@
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using LocalLlmRagApp.Llm;
 
 namespace LocalLlmRagApp.Data;
 
 public class Chunker
 {
     private readonly IEmbedder _embedder;
+    private readonly ILlmService _llmService;
+    private readonly int _summaryTokenLimit;
 
-    public Chunker(IEmbedder embedder)
+    public Chunker(IEmbedder embedder, ILlmService llmService)
     {
         _embedder = embedder;
+        _llmService = llmService;
+        _summaryTokenLimit = (int)(_embedder.MaxTokenLength * 0.7);
     }
 
     public IEnumerable<string> Chunk(string text)
@@ -27,8 +34,7 @@ public class Chunker
             if (trimmed.StartsWith("# "))
             {
                 if (currentChunk != null && IsValidChunk(currentChunk))
-                    foreach (var chunk in SplitWithHeadings(currentChunk.ToString().Trim(), currentHeadings))
-                        yield return chunk;
+                    yield return SummarizeAndValidateChunk(currentChunk.ToString().Trim(), currentHeadings).GetAwaiter().GetResult();
                 lastH1 = line;
                 lastH2 = null;
                 lastH3 = null;
@@ -40,8 +46,7 @@ public class Chunker
             else if (trimmed.StartsWith("## "))
             {
                 if (currentChunk != null && IsValidChunk(currentChunk))
-                    foreach (var chunk in SplitWithHeadings(currentChunk.ToString().Trim(), currentHeadings))
-                        yield return chunk;
+                    yield return SummarizeAndValidateChunk(currentChunk.ToString().Trim(), currentHeadings).GetAwaiter().GetResult();
                 lastH2 = line;
                 lastH3 = null;
                 currentChunk = new StringBuilder();
@@ -55,8 +60,7 @@ public class Chunker
             else if (trimmed.StartsWith("### "))
             {
                 if (currentChunk != null && IsValidChunk(currentChunk))
-                    foreach (var chunk in SplitWithHeadings(currentChunk.ToString().Trim(), currentHeadings))
-                        yield return chunk;
+                    yield return SummarizeAndValidateChunk(currentChunk.ToString().Trim(), currentHeadings).GetAwaiter().GetResult();
                 lastH3 = line;
                 currentChunk = new StringBuilder();
                 if (lastH1 != null) currentChunk.AppendLine(lastH1);
@@ -75,8 +79,7 @@ public class Chunker
             }
         }
         if (currentChunk != null && IsValidChunk(currentChunk))
-            foreach (var chunk in SplitWithHeadings(currentChunk.ToString().Trim(), currentHeadings))
-                yield return chunk;
+            yield return SummarizeAndValidateChunk(currentChunk.ToString().Trim(), currentHeadings).GetAwaiter().GetResult();
     }
 
     private bool IsValidChunk(StringBuilder chunk)
@@ -91,8 +94,8 @@ public class Chunker
         return false;
     }
 
-    // 本文がEmbedder.MaxLengthトークン数を超える場合、見出しを付加して分割
-    private IEnumerable<string> SplitWithHeadings(string chunk, List<string> headings)
+    // チャンク本文を要約し、見出しはC#側で付加
+    private async Task<string> SummarizeAndValidateChunk(string chunk, List<string> headings)
     {
         var chunkLines = chunk.Split(Environment.NewLine);
         int headingCount = 0;
@@ -108,55 +111,17 @@ public class Chunker
         {
             bodyBuilder.AppendLine(chunkLines[i]);
         }
-        // 先頭・末尾の空行を除去
-        var body = string.Join("\n", bodyBuilder.ToString().Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries));
+        var body = bodyBuilder.ToString().Trim();
         var headingText = headingBuilder.ToString();
-        // 1チャンクとしてトークン数が収まる場合
-        string fullChunk = headingText + body;
-        if (_embedder.GetTokenCount(fullChunk) <= _embedder.MaxTokenLength)
+        // LLMで要約（見出し保持指示は削除）
+        string summaryPrompt = $"次のテキストを{_summaryTokenLimit}トークン以内で要約してください。\n\n---\n{body}\n---";
+        string summarizedBody = await _llmService.ChatAsync(summaryPrompt);
+        string resultChunk = headingText + summarizedBody.Trim();
+        // トークン数チェック
+        if (_embedder.GetTokenCount(resultChunk) > _embedder.MaxTokenLength)
         {
-            yield return chunk;
-            yield break;
+            throw new System.Exception($"チャンクが最大トークン数({_embedder.MaxTokenLength})を超えました。見出し: {headingText.Trim()}\n要約後トークン数: {_embedder.GetTokenCount(resultChunk)}");
         }
-        // 本文を分割
-        int maxBodyTokens = _embedder.MaxTokenLength - _embedder.GetTokenCount(headingText);
-        if (maxBodyTokens <= 0)
-            yield break; // 見出しだけでオーバー
-        // 1文ずつ追加してトークン数が超えたら分割
-        var sentences = body.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        var partBuilder = new StringBuilder();
-        foreach (var sentence in sentences)
-        {
-            // 追加前にトークン数を判定
-            string candidate = headingText + (partBuilder.Length > 0 ? partBuilder.ToString() + "\n" : "") + sentence;
-            if (_embedder.GetTokenCount(candidate) > _embedder.MaxTokenLength)
-            {
-                // 追加前のpartBuilderを出力
-                if (partBuilder.Length > 0)
-                {
-                    yield return (headingText + partBuilder.ToString()).Trim();
-                    partBuilder.Clear();
-                }
-                // 1文だけで超える場合はその文単体で出力
-                if (_embedder.GetTokenCount(headingText + sentence) > _embedder.MaxTokenLength)
-                {
-                    yield return (headingText + sentence).Trim();
-                }
-                else
-                {
-                    partBuilder.Append(sentence);
-                }
-            }
-            else
-            {
-                if (partBuilder.Length > 0)
-                    partBuilder.Append('\n');
-                partBuilder.Append(sentence);
-            }
-        }
-        if (partBuilder.Length > 0)
-        {
-            yield return (headingText + partBuilder.ToString()).Trim();
-        }
+        return resultChunk;
     }
 }
