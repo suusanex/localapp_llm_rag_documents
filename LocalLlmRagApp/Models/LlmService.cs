@@ -16,6 +16,7 @@ public interface ILlmService
     Task<string> ChatAsync(string prompt, CancellationToken cancellationToken = default);
     Task<string> ChatAsyncDirect(string format, (string searchOption, double value)[] searchOptions,
         CancellationToken cancellationToken);
+    int GetTokenCount(string text);
 }
 
 public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, ILogger<OnnxLlmService> _logger, IConfiguration _iconfig) : ILlmService
@@ -381,5 +382,13 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
     {
         var results = await _vectorDb.SearchByKeywordsAsync(keywords, topK);
         return results.Select(x => x.text).ToList();
+    }
+
+    public int GetTokenCount(string text)
+    {
+        if (_llmTokenizer == null)
+            throw new InvalidOperationException("Tokenizer is not initialized");
+        var sequences = _llmTokenizer.Encode(text);
+        return sequences.NumSequences > 0 ? sequences[0].Length : 0;
     }
 }

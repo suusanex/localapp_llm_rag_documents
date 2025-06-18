@@ -115,7 +115,10 @@ public class Chunker
         var headingText = headingBuilder.ToString();
         // LLMで要約（見出し保持指示は削除）
         string summaryPrompt = $"<|system|>あなたはテキストの要約を適切に行うエージェントです。ユーザープロンプトの内容を、名詞などの重要単語や内容が失われないように要約する必要があります。{_summaryTokenLimit}トークン以内で要約し、要約した結果を最初に回答して、そこで回答を打ちきってください。<|end|><|user|>{body}<|end|><|assistant|>";
-        var summaryChatTokenLimit = _summaryTokenLimit;
+
+        // summaryPromptのトークン数をILlmService経由で取得
+        int promptTokenCount = _llmService.GetTokenCount(summaryPrompt);
+        var summaryChatTokenLimit = promptTokenCount + _summaryTokenLimit;
         string summarizedBody = await _llmService.ChatAsyncDirect(summaryPrompt, [("max_length", summaryChatTokenLimit)], CancellationToken.None);
         string resultChunk = headingText + summarizedBody.Trim();
         // トークン数チェック

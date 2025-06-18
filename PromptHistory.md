@@ -567,3 +567,4 @@
 1. summaryPrompt変数の、「見出し部分はそのまま、本文のみ要約してください。」という指示は、やり方を変更してください。見出しを適切に保持するような正確な応答はLLMには期待できません。
     LLMには見出しや本文の区別を要求せず、要約だけを要求します。
     要約結果に見出しを付加する処理は、C#で（Chunkerクラスで）行います。
+1. Chunker.SummarizeAndValidateChunk()の変数summaryChatTokenLimitを、sumaryPromptのトークン数+_summaryTokenLimitとなるように変更してください。sumaryPromptのトークン数の計算は、LLMServiceクラスの_llmTokenizerを使う方式で計算してください。
