@@ -14,6 +14,8 @@ namespace LocalLlmRagApp.Llm;
 public interface ILlmService
 {
     Task<string> ChatAsync(string prompt, CancellationToken cancellationToken = default);
+    Task<string> ChatAsyncDirect(string format, (string searchOption, double value)[] searchOptions,
+        CancellationToken cancellationToken);
 }
 
 public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, ILogger<OnnxLlmService> _logger, IConfiguration _iconfig) : ILlmService
@@ -137,20 +139,29 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
             }
 
             Console.WriteLine("[6/6] LLM最終推論開始...");
-            StringBuilder buf = new();
-            await foreach (var messagePart in InferStreaming(format, cancellationToken))
-            {
-                buf.Append(messagePart);
-            }
+            var result = await ChatAsyncDirect(format, [("max_length", _maxLength)], cancellationToken);
 
             Console.WriteLine("[完了] LLM応答生成完了");
-            return buf.ToString();
+            return result;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Chat error");
             return $"Error: {ex.Message}";
         }
+    }
+
+    public async Task<string> ChatAsyncDirect(string format, (string searchOption, double value)[] searchOptions,
+        CancellationToken cancellationToken)
+    {
+        StringBuilder buf = new();
+        await foreach (var messagePart in InferStreaming(format, searchOptions, cancellationToken))
+        {
+            buf.Append(messagePart);
+        }
+
+        var result = buf.ToString();
+        return result;
     }
 
     private string BuildSelectionPrompt(string question, List<string> group)
@@ -267,7 +278,7 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         return result;
     }
 
-    public async IAsyncEnumerable<string> InferStreaming(string prompt, [EnumeratorCancellation] CancellationToken ct = default)
+    public async IAsyncEnumerable<string> InferStreaming(string prompt, (string searchOption, double value)[] searchOptions, [EnumeratorCancellation] CancellationToken ct = default)
     {
         if (_model == null || _llmTokenizer == null)
         {
@@ -277,8 +288,10 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         var generatorParams = new GeneratorParams(_model);
         var sequences = _llmTokenizer.Encode(prompt);
 
-        generatorParams.SetSearchOption("max_length", _maxLength);
-        // TryGraphCaptureWithMaxBatchSize(1); は非推奨のため削除
+        foreach (var searchOption in searchOptions)
+        {
+            generatorParams.SetSearchOption(searchOption.searchOption, searchOption.value);
+        }
 
         using var tokenizerStream = _llmTokenizer.CreateStream();
         using var generator = new Generator(_model, generatorParams);
