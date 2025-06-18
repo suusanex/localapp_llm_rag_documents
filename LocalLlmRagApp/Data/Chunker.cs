@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using LocalLlmRagApp.Llm;
+using System.Text.RegularExpressions;
 
 namespace LocalLlmRagApp.Data;
 
@@ -10,13 +11,13 @@ public class Chunker
 {
     private readonly IEmbedder _embedder;
     private readonly ILlmService _llmService;
-    private readonly int _summaryTokenLimit;
+    private readonly int _embeddingTokenLimit;
 
     public Chunker(IEmbedder embedder, ILlmService llmService)
     {
         _embedder = embedder;
         _llmService = llmService;
-        _summaryTokenLimit = (int)(_embedder.MaxTokenLength * 0.7);
+        _embeddingTokenLimit = (int)(_embedder.MaxTokenLength - 10);
     }
 
     public IEnumerable<string> Chunk(string text)
@@ -113,14 +114,33 @@ public class Chunker
         }
         var body = bodyBuilder.ToString().Trim();
         var headingText = headingBuilder.ToString();
+
+        // headingsのトークン数をEmbedderで計算
+        string headingsConcat = string.Join("\n", headings);
+        int headingsTokenCount = _embedder.GetTokenCount(headingsConcat);
+        // summaryChatTokenLimitの計算
+        var summaryTokenLimit = _embeddingTokenLimit - headingsTokenCount;
+
         // LLMで要約（見出し保持指示は削除）
-        string summaryPrompt = $"<|system|>あなたはテキストの要約を適切に行うエージェントです。ユーザープロンプトの内容を、名詞などの重要単語や内容が失われないように要約する必要があります。{_summaryTokenLimit}トークン以内で要約し、要約した結果を最初に回答して、そこで回答を打ちきってください。<|end|><|user|>{body}<|end|><|assistant|>";
+        string summaryPrompt = $"<|system|>あなたはテキストの要約を適切に行うエージェントです。ユーザープロンプトの内容を、名詞などの重要単語や内容が失われないように要約する必要があります。{summaryTokenLimit}トークン以内で要約のみを出力し、そこで出力を終了してください。<|end|><|user|>{body}<|end|><|assistant|># 要約\n";
 
         // summaryPromptのトークン数をILlmService経由で取得
         int promptTokenCount = _llmService.GetTokenCount(summaryPrompt);
-        var summaryChatTokenLimit = promptTokenCount + _summaryTokenLimit;
+        int summaryChatTokenLimit = summaryTokenLimit + promptTokenCount;
+        if (summaryChatTokenLimit < 1) summaryChatTokenLimit = 1;
         string summarizedBody = await _llmService.ChatAsyncDirect(summaryPrompt, [("max_length", summaryChatTokenLimit)], CancellationToken.None);
-        string resultChunk = headingText + summarizedBody.Trim();
+        // Markdown見出し1が出現したらそれ以降を無視（^#\s+のみ）
+        var lines = summarizedBody.Split('\n');
+        var filteredLines = new List<string>();
+        var regexH1 = new Regex("^#\\s+");
+        foreach (var line in lines)
+        {
+            if (regexH1.IsMatch(line))
+                break;
+            filteredLines.Add(line);
+        }
+        string filteredSummary = string.Join("\n", filteredLines).Trim();
+        string resultChunk = headingText + filteredSummary;
         // トークン数チェック
         if (_embedder.GetTokenCount(resultChunk) > _embedder.MaxTokenLength)
         {
