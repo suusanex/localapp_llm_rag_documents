@@ -122,10 +122,10 @@ public class Chunker
         var summaryTokenLimit = _embeddingTokenLimit - headingsTokenCount;
 
         // LLMで要約（見出し保持指示は削除）
-        string summaryPrompt = $"<|system|>あなたはテキストの要約を適切に行うエージェントです。ユーザープロンプトの内容を、名詞などの重要単語や内容が失われないように要約する必要があります。要約は{summaryTokenLimit}トークン以内で作成し、要約のみを出力し、そこで出力を終了してください。<|end|><|user|>{{BODY}}<|end|><|assistant|># 要約\n";
+        string summaryPrompt = "<|system|>あなたはテキストの要約を適切に行うエージェントです。ユーザープロンプトの内容を、名詞などの重要単語や内容が失われないように要約する必要があります。要約は" + summaryTokenLimit + "トークン以内で作成し、要約のみを出力し、そこで出力を終了してください。<|end|><|user|>{BODY}<|end|><|assistant|># 要約\n";
 
         // summaryPromptのトークン数をILlmService経由で取得
-        int promptTokenCount = _llmService.GetTokenCount(summaryPrompt.Replace("{{BODY}}", ""));
+        int promptTokenCount = _llmService.GetTokenCount(summaryPrompt.Replace("{BODY}", ""));
         int summaryChatTokenLimit = summaryTokenLimit + promptTokenCount;
         if (summaryChatTokenLimit < 1) summaryChatTokenLimit = 1;
 
@@ -147,7 +147,7 @@ public class Chunker
                 for (int i = start; i <= end; i++)
                     testBuilder.AppendLine(bodyLines[i]);
                 string testBody = testBuilder.ToString().Trim();
-                string testPrompt = summaryPrompt.Replace("{{BODY}}", testBody);
+                string testPrompt = summaryPrompt.Replace("{BODY}", testBody);
                 int testPromptTokenCount = _llmService.GetTokenCount(testPrompt);
                 int testMaxLength = summaryTokenLimit + testPromptTokenCount;
                 if (testMaxLength > contextLength)
@@ -160,10 +160,10 @@ public class Chunker
                 // 1行すら入らない場合は強制的に1行だけ処理
                 partBuilder.AppendLine(bodyLines[start]);
                 end = start + 1;
-                partTokenCount = _llmService.GetTokenCount(summaryPrompt.Replace("{{BODY}}", bodyLines[start]));
+                partTokenCount = _llmService.GetTokenCount(summaryPrompt.Replace("{BODY}", bodyLines[start]));
             }
             string partBody = partBuilder.ToString().Trim();
-            string partPrompt = summaryPrompt.Replace("{{BODY}}", partBody);
+            string partPrompt = summaryPrompt.Replace("{BODY}", partBody);
             int partMaxLength = summaryTokenLimit + partTokenCount;
             if (partMaxLength < 1) partMaxLength = 1;
             string partSummary = await _llmService.ChatAsyncDirect(partPrompt, [("max_length", partMaxLength)], CancellationToken.None);
