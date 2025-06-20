@@ -182,10 +182,23 @@ public class Chunker
             start = end + 1;
         }
         string resultChunk = headingText + string.Join("\n", summaries).Trim();
-        // トークン数チェック
-        if (_embedder.GetTokenCount(resultChunk) > _embedder.MaxTokenLength)
+        // トークン数チェックと切り詰め処理
+        int resultTokenCount = _embedder.GetTokenCount(resultChunk);
+        if (resultTokenCount > _embedder.MaxTokenLength)
         {
-            throw new System.Exception($"チャンクが最大トークン数({_embedder.MaxTokenLength})を超えました。見出し: {headingText.Trim()}\n要約後トークン数: {_embedder.GetTokenCount(resultChunk)}");
+            // 文字単位で切り詰めてトークン数が上限以内になるまで調整
+            int maxToken = _embedder.MaxTokenLength;
+            string truncated = resultChunk;
+            // 粗く末尾を削る（高速化のため）
+            int approxLength = (int)((double)resultChunk.Length * maxToken / resultTokenCount);
+            if (approxLength < resultChunk.Length)
+                truncated = resultChunk.Substring(0, approxLength);
+            // 1文字ずつ減らして調整
+            while (_embedder.GetTokenCount(truncated) > maxToken && truncated.Length > 0)
+            {
+                truncated = truncated.Substring(0, truncated.Length - 1);
+            }
+            resultChunk = truncated;
         }
         return resultChunk;
     }
