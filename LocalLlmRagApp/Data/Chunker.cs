@@ -122,25 +122,66 @@ public class Chunker
         var summaryTokenLimit = _embeddingTokenLimit - headingsTokenCount;
 
         // LLMで要約（見出し保持指示は削除）
-        string summaryPrompt = $"<|system|>あなたはテキストの要約を適切に行うエージェントです。ユーザープロンプトの内容を、名詞などの重要単語や内容が失われないように要約する必要があります。{summaryTokenLimit}トークン以内で要約のみを出力し、そこで出力を終了してください。<|end|><|user|>{body}<|end|><|assistant|># 要約\n";
+        string summaryPrompt = $"<|system|>あなたはテキストの要約を適切に行うエージェントです。ユーザープロンプトの内容を、名詞などの重要単語や内容が失われないように要約する必要があります。{summaryTokenLimit}トークン以内で要約のみを出力し、そこで出力を終了してください。<|end|><|user|>{{BODY}}<|end|><|assistant|># 要約\n";
 
         // summaryPromptのトークン数をILlmService経由で取得
-        int promptTokenCount = _llmService.GetTokenCount(summaryPrompt);
+        int promptTokenCount = _llmService.GetTokenCount(summaryPrompt.Replace("{{BODY}}", ""));
         int summaryChatTokenLimit = summaryTokenLimit + promptTokenCount;
         if (summaryChatTokenLimit < 1) summaryChatTokenLimit = 1;
-        string summarizedBody = await _llmService.ChatAsyncDirect(summaryPrompt, [("max_length", summaryChatTokenLimit)], CancellationToken.None);
-        // Markdown見出し1が出現したらそれ以降を無視（^#\s+のみ）
-        var lines = summarizedBody.Split('\n');
-        var filteredLines = new List<string>();
-        var regexH1 = new Regex("^#\\s+");
-        foreach (var line in lines)
+
+        // LLMモデルの最大長を取得
+        int contextLength = _llmService.GetContextLength();
+        // bodyが長すぎてmax_lengthがcontextLengthを超える場合は分割
+        var bodyLines = body.Split('\n');
+        var summaries = new List<string>();
+        int start = 0;
+        while (start < bodyLines.Length)
         {
-            if (regexH1.IsMatch(line))
-                break;
-            filteredLines.Add(line);
+            // 1チャンク分のbodyを決定
+            var partBuilder = new StringBuilder();
+            int partTokenCount = 0;
+            int end = start;
+            for (; end < bodyLines.Length; end++)
+            {
+                var testBuilder = new StringBuilder();
+                for (int i = start; i <= end; i++)
+                    testBuilder.AppendLine(bodyLines[i]);
+                string testBody = testBuilder.ToString().Trim();
+                string testPrompt = summaryPrompt.Replace("{{BODY}}", testBody);
+                int testPromptTokenCount = _llmService.GetTokenCount(testPrompt);
+                int testMaxLength = summaryTokenLimit + testPromptTokenCount;
+                if (testMaxLength > contextLength)
+                    break;
+                partBuilder = testBuilder;
+                partTokenCount = testPromptTokenCount;
+            }
+            if (partBuilder.Length == 0 && start < bodyLines.Length)
+            {
+                // 1行すら入らない場合は強制的に1行だけ処理
+                partBuilder.AppendLine(bodyLines[start]);
+                end = start + 1;
+                partTokenCount = _llmService.GetTokenCount(summaryPrompt.Replace("{{BODY}}", bodyLines[start]));
+            }
+            string partBody = partBuilder.ToString().Trim();
+            string partPrompt = summaryPrompt.Replace("{{BODY}}", partBody);
+            int partMaxLength = summaryTokenLimit + partTokenCount;
+            if (partMaxLength < 1) partMaxLength = 1;
+            string partSummary = await _llmService.ChatAsyncDirect(partPrompt, [("max_length", partMaxLength)], CancellationToken.None);
+            // Markdown見出し1が出現したらそれ以降を無視（^#\s+のみ）
+            var lines = partSummary.Split('\n');
+            var filteredLines = new List<string>();
+            var regexH1 = new Regex("^#\\s+");
+            foreach (var line in lines)
+            {
+                if (regexH1.IsMatch(line))
+                    break;
+                filteredLines.Add(line);
+            }
+            string filteredSummary = string.Join("\n", filteredLines).Trim();
+            summaries.Add(filteredSummary);
+            start = end + 1;
         }
-        string filteredSummary = string.Join("\n", filteredLines).Trim();
-        string resultChunk = headingText + filteredSummary;
+        string resultChunk = headingText + string.Join("\n", summaries).Trim();
         // トークン数チェック
         if (_embedder.GetTokenCount(resultChunk) > _embedder.MaxTokenLength)
         {

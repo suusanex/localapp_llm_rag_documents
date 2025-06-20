@@ -17,6 +17,7 @@ public interface ILlmService
     Task<string> ChatAsyncDirect(string format, (string searchOption, double value)[] searchOptions,
         CancellationToken cancellationToken);
     int GetTokenCount(string text);
+    int GetContextLength();
 }
 
 public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, ILogger<OnnxLlmService> _logger, IConfiguration _iconfig) : ILlmService
@@ -391,4 +392,6 @@ public class OnnxLlmService(IOptions<AppConfig> _config, IVectorDb _vectorDb, IL
         var sequences = _llmTokenizer.Encode(text);
         return sequences.NumSequences > 0 ? sequences[0].Length : 0;
     }
+
+    public int GetContextLength() => _contextLength;
 }
