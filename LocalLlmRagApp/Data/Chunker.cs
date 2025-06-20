@@ -122,7 +122,7 @@ public class Chunker
         var summaryTokenLimit = _embeddingTokenLimit - headingsTokenCount;
 
         // LLMで要約（見出し保持指示は削除）
-        string summaryPrompt = $"<|system|>あなたはテキストの要約を適切に行うエージェントです。ユーザープロンプトの内容を、名詞などの重要単語や内容が失われないように要約する必要があります。{summaryTokenLimit}トークン以内で要約のみを出力し、そこで出力を終了してください。<|end|><|user|>{{BODY}}<|end|><|assistant|># 要約\n";
+        string summaryPrompt = $"<|system|>あなたはテキストの要約を適切に行うエージェントです。ユーザープロンプトの内容を、名詞などの重要単語や内容が失われないように要約する必要があります。要約は{summaryTokenLimit}トークン以内で作成し、要約のみを出力し、そこで出力を終了してください。<|end|><|user|>{{BODY}}<|end|><|assistant|># 要約\n";
 
         // summaryPromptのトークン数をILlmService経由で取得
         int promptTokenCount = _llmService.GetTokenCount(summaryPrompt.Replace("{{BODY}}", ""));
