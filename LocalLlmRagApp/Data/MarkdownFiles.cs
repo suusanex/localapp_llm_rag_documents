@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
 using System.IO;
 
 namespace LocalLlmRagApp.Data;
@@ -7,7 +7,7 @@ public class MarkdownFiles
 {
     public IEnumerable<string> GetMarkdownFilePaths(string directory)
     {
-        // w’èƒfƒBƒŒƒNƒgƒŠ”z‰º‚ÌMarkdownƒtƒ@ƒCƒ‹ƒpƒX‚ğ—ñ‹“
+        // æŒ‡å®šãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªé…ä¸‹ã®Markdownãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹ã‚’åˆ—æŒ™
         return Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories);
     }
 

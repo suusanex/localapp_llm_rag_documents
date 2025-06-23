@@ -1,11 +1,11 @@
-using Microsoft.ML.Tokenizers;
+ï»¿using Microsoft.ML.Tokenizers;
 using System.Linq;
 using System.IO;
 using Microsoft.Extensions.Options;
 
 namespace LocalLlmRagApp.Data;
 
-// --- Embedder—pTokenizeriMicrosoft.ML.Tokenizers—˜—pj ---
+// --- Embedderç”¨Tokenizerï¼ˆMicrosoft.ML.Tokenizersåˆ©ç”¨ï¼‰ ---
 public class EmbedderTokenizer
 {
     private readonly SentencePieceTokenizer _tokenizer;

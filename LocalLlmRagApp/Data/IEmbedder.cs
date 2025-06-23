@@ -1,4 +1,4 @@
-namespace LocalLlmRagApp.Data;
+﻿namespace LocalLlmRagApp.Data;
 
 public interface IEmbedder
 {

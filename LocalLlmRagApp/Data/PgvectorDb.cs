@@ -1,4 +1,4 @@
-using Pgvector;
+ï»¿using Pgvector;
 using Npgsql;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -92,7 +92,7 @@ public class PgvectorDb : IVectorDb
     
         await using var conn = await _dataSource.OpenConnectionAsync();
         await using var cmd = conn.CreateCommand();
-        // “®“I‚ÉORðŒ‚ð¶¬
+        // å‹•çš„ã«ORæ¡ä»¶ã‚’ç”Ÿæˆ
         var conditions = keywords.Select((k, i) => $"text ILIKE @kw{i}").ToArray();
         cmd.CommandText = $@"
             SELECT text, 0.0 AS score

@@ -1,4 +1,4 @@
-using Microsoft.ML.OnnxRuntime;
+ï»¿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.Extensions.Options;
 
@@ -6,8 +6,8 @@ namespace LocalLlmRagApp.Data;
 
 public enum EmbeddingModelType
 {
-    IntfloatMultilingualE5Base, // 768ŸŒ³
-    IntfloatMultilingualE5Large // 1024ŸŒ³
+    IntfloatMultilingualE5Base, // 768æ¬¡å…ƒ
+    IntfloatMultilingualE5Large // 1024æ¬¡å…ƒ
 }
 
 public class Embedder : IEmbedder
@@ -16,7 +16,7 @@ public class Embedder : IEmbedder
     private EmbedderTokenizer? _tokenizer;
     private readonly IOptions<AppConfig> _config;
     private bool _initialized = false;
-    private const int MaxLength = 512; // ƒ‚ƒfƒ‹‚ÌÅ‘å’·‚É‡‚í‚¹‚Ä’²®
+    private const int MaxLength = 512; // ãƒ¢ãƒ‡ãƒ«ã®æœ€å¤§é•·ã«åˆã‚ã›ã¦èª¿æ•´
 
     public static int GetDimensions(EmbeddingModelType type) => type switch
     {
@@ -49,7 +49,7 @@ public class Embedder : IEmbedder
     {
         if (!_initialized) throw new InvalidOperationException("Embedder is not initialized. Call Initialize() first.");
         var inputIds = _tokenizer!.Encode($"passage:{text}");
-        // ƒpƒfƒBƒ“ƒO‚Ü‚½‚ÍØ‚è‹l‚ß
+        // ãƒ‘ãƒ‡ã‚£ãƒ³ã‚°ã¾ãŸã¯åˆ‡ã‚Šè©°ã‚
         var padded = new long[MaxLength];
         var attentionMask = new long[MaxLength];
         int len = Math.Min(inputIds.Length, MaxLength);
@@ -113,7 +113,7 @@ public class Embedder : IEmbedder
     {
         if (_tokenizer == null)
         {
-            // Tokenizer‚ª–¢‰Šú‰»‚Ìê‡‚Íˆê“I‚É‰Šú‰»
+            // TokenizerãŒæœªåˆæœŸåŒ–ã®å ´åˆã¯ä¸€æ™‚çš„ã«åˆæœŸåŒ–
             _tokenizer = new EmbedderTokenizer(_config);
         }
         return _tokenizer.Encode($"passage:{text}").Length;
