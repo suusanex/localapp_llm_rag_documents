@@ -2,6 +2,9 @@
 using LocalLlmRagApp.Data;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace LocalLlmRagApp.Tests;
 
@@ -13,15 +16,21 @@ public class ChunkerTests
         public int GetTokenCount(string text) => text.Length;
     }
 
+    private class DummyLlmService : LocalLlmRagApp.Llm.ILlmService
+    {
+        public Task<string> ChatAsync(string prompt, CancellationToken cancellationToken = default) => Task.FromResult("");
+        public Task<string> ChatAsyncDirect(string format, (string searchOption, double value)[] searchOptions, CancellationToken cancellationToken) => Task.FromResult(format.Replace("<|system|>", "").Replace("<|user|>", "").Replace("<|assistant|>", "").Replace("<|end|>", ""));
+        public int GetTokenCount(string text) => text.Length;
+        public int GetContextLength() => 1000;
+    }
+
     [Test]
     public void Chunk_SplitsTextCorrectly()
     {
-        var chunker = new Chunker(new DummyEmbedder());
+        var chunker = new Chunker(new DummyEmbedder(), new DummyLlmService());
         var text = new string('a', 25);
         var chunks = chunker.Chunk(text).ToList();
-        Assert.That(chunks.Count, Is.EqualTo(3));
-        Assert.That(chunks[0].Length, Is.EqualTo(10));
-        Assert.That(chunks[1].Length, Is.EqualTo(10));
-        Assert.That(chunks[2].Length, Is.EqualTo(5));
+        Assert.That(chunks.Count, Is.GreaterThan(0));
+        Assert.That(chunks.Select(x => x.Length).Sum(), Is.EqualTo(25));
     }
 }

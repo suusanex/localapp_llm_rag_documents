@@ -35,7 +35,10 @@ public class Chunker
             if (trimmed.StartsWith("# "))
             {
                 if (currentChunk != null && IsValidChunk(currentChunk))
-                    yield return SummarizeAndValidateChunk(currentChunk.ToString().Trim(), currentHeadings).GetAwaiter().GetResult();
+                {
+                    foreach (var chunk in SummarizeAndValidateChunk(currentChunk.ToString().Trim(), currentHeadings).GetAwaiter().GetResult())
+                        yield return chunk;
+                }
                 lastH1 = line;
                 lastH2 = null;
                 lastH3 = null;
@@ -47,7 +50,10 @@ public class Chunker
             else if (trimmed.StartsWith("## "))
             {
                 if (currentChunk != null && IsValidChunk(currentChunk))
-                    yield return SummarizeAndValidateChunk(currentChunk.ToString().Trim(), currentHeadings).GetAwaiter().GetResult();
+                {
+                    foreach (var chunk in SummarizeAndValidateChunk(currentChunk.ToString().Trim(), currentHeadings).GetAwaiter().GetResult())
+                        yield return chunk;
+                }
                 lastH2 = line;
                 lastH3 = null;
                 currentChunk = new StringBuilder();
@@ -61,7 +67,10 @@ public class Chunker
             else if (trimmed.StartsWith("### "))
             {
                 if (currentChunk != null && IsValidChunk(currentChunk))
-                    yield return SummarizeAndValidateChunk(currentChunk.ToString().Trim(), currentHeadings).GetAwaiter().GetResult();
+                {
+                    foreach (var chunk in SummarizeAndValidateChunk(currentChunk.ToString().Trim(), currentHeadings).GetAwaiter().GetResult())
+                        yield return chunk;
+                }
                 lastH3 = line;
                 currentChunk = new StringBuilder();
                 if (lastH1 != null) currentChunk.AppendLine(lastH1);
@@ -80,7 +89,10 @@ public class Chunker
             }
         }
         if (currentChunk != null && IsValidChunk(currentChunk))
-            yield return SummarizeAndValidateChunk(currentChunk.ToString().Trim(), currentHeadings).GetAwaiter().GetResult();
+        {
+            foreach (var chunk in SummarizeAndValidateChunk(currentChunk.ToString().Trim(), currentHeadings).GetAwaiter().GetResult())
+                yield return chunk;
+        }
     }
 
     private bool IsValidChunk(StringBuilder chunk)
@@ -95,8 +107,8 @@ public class Chunker
         return false;
     }
 
-    // ƒ`ƒƒƒ“ƒN–{•¶‚ğ—v–ñ‚µAŒ©o‚µ‚ÍC#‘¤‚Å•t‰Á
-    private async Task<string> SummarizeAndValidateChunk(string chunk, List<string> headings)
+    // è¦ç´„ã¨ãƒãƒªãƒ‡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’è¡Œã„ã€ãƒˆãƒ¼ã‚¯ãƒ³ä¸Šé™ã‚’è¶…ãˆã‚‹å ´åˆã¯åˆ†å‰²ã—ã¦è¿”ã™
+    private async Task<List<string>> SummarizeAndValidateChunk(string chunk, List<string> headings)
     {
         var chunkLines = chunk.Split(Environment.NewLine);
         int headingCount = 0;
@@ -106,7 +118,6 @@ public class Chunker
             headingBuilder.AppendLine(h);
             headingCount++;
         }
-        // –{•¶•”•ª
         var bodyBuilder = new StringBuilder();
         for (int i = headingCount; i < chunkLines.Length; i++)
         {
@@ -115,29 +126,22 @@ public class Chunker
         var body = bodyBuilder.ToString().Trim();
         var headingText = headingBuilder.ToString();
 
-        // headings‚Ìƒg[ƒNƒ“”‚ğEmbedder‚ÅŒvZ
         string headingsConcat = string.Join("\n", headings);
         int headingsTokenCount = _embedder.GetTokenCount(headingsConcat);
-        // summaryChatTokenLimit‚ÌŒvZ
         var summaryTokenLimit = _embeddingTokenLimit - headingsTokenCount;
 
-        // LLM‚Å—v–ñiŒ©o‚µ•Ûw¦‚Ííœj
-        string summaryPrompt = "<|system|>‚ ‚È‚½‚ÍƒeƒLƒXƒg‚Ì—v–ñ‚ğ“KØ‚És‚¤ƒG[ƒWƒFƒ“ƒg‚Å‚·Bƒ†[ƒU[ƒvƒƒ“ƒvƒg‚Ì“à—e‚ğA–¼Œ‚È‚Ç‚Ìd—v’PŒê‚â“à—e‚ª¸‚í‚ê‚È‚¢‚æ‚¤‚É—v–ñ‚·‚é•K—v‚ª‚ ‚è‚Ü‚·B—v–ñ‚Í" + summaryTokenLimit + "ƒg[ƒNƒ“ˆÈ“à‚Åì¬‚µA—v–ñ‚Ì‚İ‚ğo—Í‚µA‚»‚±‚Åo—Í‚ğI—¹‚µ‚Ä‚­‚¾‚³‚¢B<|end|><|user|>{BODY}<|end|><|assistant|># —v–ñ\n";
+        string summaryPrompt = "<|system|>ã‚ãªãŸã¯ãƒ†ã‚­ã‚¹ãƒˆã®è¦ç´„ã‚’é©åˆ‡ã«è¡Œã†ã‚¨ãƒ¼ã‚¸ã‚§ãƒ³ãƒˆã§ã™ã€‚ãƒ¦ãƒ¼ã‚¶ãƒ¼ãƒ—ãƒ­ãƒ³ãƒ—ãƒˆã®å†…å®¹ã‚’ã€åè©ãªã©ã®é‡è¦å˜èªã‚„å†…å®¹ãŒå¤±ã‚ã‚Œãªã„ã‚ˆã†ã«è¦ç´„ã™ã‚‹å¿…è¦ãŒã‚ã‚Šã¾ã™ã€‚è¦ç´„ã®ã¿ã‚’å‡ºåŠ›ã—ã€ãã“ã§å‡ºåŠ›ã‚’çµ‚äº†ã—ã¦ãã ã•ã„ã€‚<|end|><|user|>{BODY}<|end|><|assistant|># è¦ç´„\n";
 
-        // summaryPrompt‚Ìƒg[ƒNƒ“”‚ğILlmServiceŒo—R‚Åæ“¾
         int promptTokenCount = _llmService.GetTokenCount(summaryPrompt.Replace("{BODY}", ""));
         int summaryChatTokenLimit = summaryTokenLimit + promptTokenCount;
         if (summaryChatTokenLimit < 1) summaryChatTokenLimit = 1;
 
-        // LLMƒ‚ƒfƒ‹‚ÌÅ‘å’·‚ğæ“¾
         int contextLength = _llmService.GetContextLength();
-        // body‚ª’·‚·‚¬‚Ämax_length‚ªcontextLength‚ğ’´‚¦‚éê‡‚Í•ªŠ„
         var bodyLines = body.Split('\n');
         var summaries = new List<string>();
         int start = 0;
         while (start < bodyLines.Length)
         {
-            // 1ƒ`ƒƒƒ“ƒN•ª‚Ìbody‚ğŒˆ’è
             var partBuilder = new StringBuilder();
             int partTokenCount = 0;
             int end = start;
@@ -157,7 +161,6 @@ public class Chunker
             }
             if (partBuilder.Length == 0 && start < bodyLines.Length)
             {
-                // 1s‚·‚ç“ü‚ç‚È‚¢ê‡‚Í‹­§“I‚É1s‚¾‚¯ˆ—
                 partBuilder.AppendLine(bodyLines[start]);
                 end = start + 1;
                 partTokenCount = _llmService.GetTokenCount(summaryPrompt.Replace("{BODY}", bodyLines[start]));
@@ -167,7 +170,6 @@ public class Chunker
             int partMaxLength = summaryTokenLimit + partTokenCount;
             if (partMaxLength < 1) partMaxLength = 1;
             string partSummary = await _llmService.ChatAsyncDirect(partPrompt, [("max_length", partMaxLength)], CancellationToken.None);
-            // MarkdownŒ©o‚µ1‚ªoŒ»‚µ‚½‚ç‚»‚êˆÈ~‚ğ–³‹i^#\s+‚Ì‚İj
             var lines = partSummary.Split('\n');
             var filteredLines = new List<string>();
             var regexH1 = new Regex("^#\\s+");
@@ -181,25 +183,36 @@ public class Chunker
             summaries.Add(filteredSummary);
             start = end + 1;
         }
-        string resultChunk = headingText + string.Join("\n", summaries).Trim();
-        // ƒg[ƒNƒ“”ƒ`ƒFƒbƒN‚ÆØ‚è‹l‚ßˆ—
-        int resultTokenCount = _embedder.GetTokenCount(resultChunk);
-        if (resultTokenCount > _embedder.MaxTokenLength)
+        // ã“ã“ã‹ã‚‰åˆ†å‰²å‡¦ç†
+        var resultChunks = new List<string>();
+        var summaryText = string.Join("\n", summaries).Trim();
+        // headings+summaryTextã‚’ãƒˆãƒ¼ã‚¯ãƒ³ä¸Šé™ã§åˆ†å‰²
+        int maxToken = _embedder.MaxTokenLength;
+        int summaryStart = 0;
+        while (summaryStart < summaryText.Length)
         {
-            // •¶š’PˆÊ‚ÅØ‚è‹l‚ß‚Äƒg[ƒNƒ“”‚ªãŒÀˆÈ“à‚É‚È‚é‚Ü‚Å’²®
-            int maxToken = _embedder.MaxTokenLength;
-            string truncated = resultChunk;
-            // ‘e‚­––”ö‚ğí‚éi‚‘¬‰»‚Ì‚½‚ßj
-            int approxLength = (int)((double)resultChunk.Length * maxToken / resultTokenCount);
-            if (approxLength < resultChunk.Length)
-                truncated = resultChunk.Substring(0, approxLength);
-            // 1•¶š‚¸‚ÂŒ¸‚ç‚µ‚Ä’²®
-            while (_embedder.GetTokenCount(truncated) > maxToken && truncated.Length > 0)
+            // ã¾ãšå¤§ã¾ã‹ã«åˆ†å‰²
+            int approxLength = summaryText.Length - summaryStart;
+            string candidate;
+            do
             {
-                truncated = truncated.Substring(0, truncated.Length - 1);
+                candidate = summaryText.Substring(summaryStart, approxLength);
+                string candidateChunk = headingText + candidate;
+                int tokenCount = _embedder.GetTokenCount(candidateChunk);
+                if (tokenCount <= maxToken)
+                {
+                    resultChunks.Add(candidateChunk);
+                    summaryStart += approxLength;
+                    break;
+                }
+                approxLength--;
+            } while (approxLength > 0);
+            if (approxLength == 0)
+            {
+                // 1æ–‡å­—ã‚‚å…¥ã‚‰ãªã„å ´åˆã¯å¼·åˆ¶çš„ã«1æ–‡å­—é€²ã‚ã‚‹
+                summaryStart++;
             }
-            resultChunk = truncated;
         }
-        return resultChunk;
+        return resultChunks;
     }
 }
