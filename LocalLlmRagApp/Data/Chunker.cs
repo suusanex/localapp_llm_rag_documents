@@ -132,10 +132,6 @@ public class Chunker
 
         string summaryPrompt = "<|system|>あなたはテキストの要約を適切に行うエージェントです。ユーザープロンプトの内容を、名詞などの重要単語や内容が失われないように要約する必要があります。要約のみを出力し、そこで出力を終了してください。<|end|><|user|>{BODY}<|end|><|assistant|># 要約\n";
 
-        int promptTokenCount = _llmService.GetTokenCount(summaryPrompt.Replace("{BODY}", ""));
-        int summaryChatTokenLimit = summaryTokenLimit + promptTokenCount;
-        if (summaryChatTokenLimit < 1) summaryChatTokenLimit = 1;
-
         int contextLength = _llmService.GetContextLength();
         var bodyLines = body.Split('\n');
         var summaries = new List<string>();
@@ -143,7 +139,6 @@ public class Chunker
         while (start < bodyLines.Length)
         {
             var partBuilder = new StringBuilder();
-            int partTokenCount = 0;
             int end = start;
             for (; end < bodyLines.Length; end++)
             {
@@ -157,19 +152,16 @@ public class Chunker
                 if (testMaxLength > contextLength)
                     break;
                 partBuilder = testBuilder;
-                partTokenCount = testPromptTokenCount;
             }
             if (partBuilder.Length == 0 && start < bodyLines.Length)
             {
                 partBuilder.AppendLine(bodyLines[start]);
                 end = start + 1;
-                partTokenCount = _llmService.GetTokenCount(summaryPrompt.Replace("{BODY}", bodyLines[start]));
+                _llmService.GetTokenCount(summaryPrompt.Replace("{BODY}", bodyLines[start]));
             }
             string partBody = partBuilder.ToString().Trim();
             string partPrompt = summaryPrompt.Replace("{BODY}", partBody);
-            int partMaxLength = summaryTokenLimit + partTokenCount;
-            if (partMaxLength < 1) partMaxLength = 1;
-            string partSummary = await _llmService.ChatAsyncDirect(partPrompt, [("max_length", partMaxLength)], CancellationToken.None);
+            string partSummary = await _llmService.ChatAsyncDirect(partPrompt, [("max_length", 4096)], CancellationToken.None);
             var lines = partSummary.Split('\n');
             var filteredLines = new List<string>();
             var regexH1 = new Regex("^#\\s+");
